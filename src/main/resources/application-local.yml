@@ -1,0 +1,24 @@
+server:
+  port: 8083
+spring:
+  cloud:
+    config:
+      import-check:
+        enabled: false
+  application:
+    name: spring-sample
+  datasource:
+    hikari:
+      connection-timeout: 60000
+      maxLifetime: 1800000
+      maximum-pool-size: 30
+    password: ""
+    url: jdbc:mysql://localhost:3306/sample
+    username: root
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 30
