@@ -1,14 +1,14 @@
-package tech.oorjaa.spring.sample.controller;
+package tech.oorjaa.reporting.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import tech.oorjaa.spring.sample.domain.MemoryStatus;
+import tech.oorjaa.reporting.models.MemoryStatus;
 
-@RestController("/")
-public class SampleController {
+@RestController("/foo")
+public class FooController {
 
-    @GetMapping("memory-status")
+    @GetMapping("/memory-status")
     public ResponseEntity<MemoryStatus> getMemoryStatus() {
         return ResponseEntity.ok(new MemoryStatus());
     }

@@ -1,4 +1,4 @@
-package tech.oorjaa.spring.sample.exception;
+package tech.oorjaa.reporting.exceptions;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
