@@ -1,4 +1,4 @@
-package tech.oorjaa.spring.sample.repository;
+package tech.oorjaa.reporting.repositories;
 
 import org.springframework.stereotype.Repository;
 

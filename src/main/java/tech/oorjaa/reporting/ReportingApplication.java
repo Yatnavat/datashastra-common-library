@@ -1,13 +1,11 @@
-package tech.oorjaa.spring.sample;
+package tech.oorjaa.reporting;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SpringSampleApplication {
-
+public class ReportingApplication {
 	public static void main(String[] args) {
-		SpringApplication.run(SpringSampleApplication.class, args);
+		SpringApplication.run(ReportingApplication.class, args);
 	}
-
 }

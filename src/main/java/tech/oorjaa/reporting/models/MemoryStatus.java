@@ -1,4 +1,4 @@
-package tech.oorjaa.spring.sample.domain;
+package tech.oorjaa.reporting.models;
 
 import lombok.Getter;
 
