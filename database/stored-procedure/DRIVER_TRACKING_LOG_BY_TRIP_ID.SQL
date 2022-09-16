@@ -1,3 +1,4 @@
+
 create procedure DRIVER_TRACKING_LOG_BY_TRIP_ID(IN TID INT)
 begin
 select id, trip_name, DCName, Driver, DriverMob, Vehicle, Vendor, FirstLog, LastLog,timediff(LastLog,FirstLog)TripDuration,
@@ -8,7 +9,7 @@ from (select distinctrow t.id,
                          getDriverByID(driver_id)                                                                  Driver,
                          getDriverMobileByID(driver_id)                                                            DriverMob,
                          getVehicleNumByID(vehicle_id)                                                             Vehicle,
-                         getVendorIDByDriver(driver_id)                                                            Vendor,
+                         getVendorByDriver(driver_id)                                                            Vendor,
                          first_value(addtime(tdt.created_date, '5:30'))
                                      over (partition by trip_id order by trip_id)                                  FirstLog,
                          last_value(addtime(tdt.created_date, '5:30'))
@@ -21,9 +22,10 @@ from (select distinctrow t.id,
                                                                      over (partition by trip_id order by trip_id)) LastLogDiff,
                          if(timediff(addtime(now(), '5:30'), last_value(addtime(tdt.created_date, '5:30'))
                                                                         over (partition by trip_id order by trip_id)) >
-                            '00:01:00', '1', '0')                                                                  TrackingStatus,
+                            '00:01:00', '0', '1')                                                                  TrackingStatus,
           (select count(*) from trip_driver_tracking tdt2 where tdt2.trip_id=t.id) LogCount
       from trip t
                left join trip_driver_tracking tdt on t.id = tdt.trip_id
-      where t.id = tdt.trip_id        AND t.ID = TID) tt;
+      where t.id = tdt.trip_id
+        AND t.ID = TID) tt;
 end;
