@@ -59,7 +59,7 @@ create procedure TRIP_HISTORY_DETAILS(IN CITY varchar(30), IN DC_ID int, IN CLIE
         and (city is null or dc.city=city)
         and (DC_ID is null or delivery_center_id=DC_ID)
         and (CLIENT_ID is null or if(CLIENT_ID in(7),t.client_id in(7,33),t.client_id in(CLIENT_ID)))
-        and date(addtime(t.trip_start_time, IST_DIFF)) between if(frmDate is null ,toDate,frmDate) and toDate
+        and date(addtime(t.trip_start_time, IST_DIFF)) between if(frmDate is null ,toDate,frmDate) and if(toDate is null ,frmDate,toDate)
         and t.id not in ( SELECT id from trip where id not in (select trip_id from tripdp where trip_id is not null ) and creation_source not in('OFFLINE_TMS'))
         order by t.id desc;
     end;
