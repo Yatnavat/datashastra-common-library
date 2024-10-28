@@ -8,17 +8,22 @@ spring:
   application:
     name: spring-sample
   datasource:
+    driverClassName: org.postgresql.Driver
     hikari:
       connection-timeout: 60000
       maxLifetime: 1800000
       maximum-pool-size: 30
-    password: ""
-    url: jdbc:mysql://localhost:3306/sample
-    username: root
+    url: jdbc:postgresql://localhost:5432/sample
+    username: postgres
+    password: root
   jpa:
     hibernate:
       ddl-auto: update
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
+        default_schema: sample_schema
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           batch_size: 30
