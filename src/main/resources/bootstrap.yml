@@ -1,6 +1,20 @@
 spring:
-  profiles:
-    active: local
+  application:
+    name: pms-enquiry-form
   cloud:
     config:
       enabled: false
+      import-check:
+        enabled: false
+  profiles:
+    active: dev
+
+# Fallback configuration if config server is not available
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

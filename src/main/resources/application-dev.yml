@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://dev.oorjaa.tech:5432/demo
     username: demo_user
-    password: ${DB_PASSWORD:jgjg90KD#22} # Use environment variable in production
+    password: jgjg90KD#22
     driver-class-name: org.postgresql.Driver
     hikari:
       connection-timeout: 30000
@@ -60,7 +60,7 @@ keycloak:
   base-url: http://4.213.126.121:8083
   realm: DEMO
   client-id: demo-service
-  client-secret: ${KEYCLOAK_CLIENT_SECRET:GGeY0mL9xPYmz1hNLy70yEcA3cV8OdDQ} # Use environment variable in production
+  client-secret: GGeY0mL9xPYmz1hNLy70yEcA3cV8OdDQ
 springdoc:
   swagger-ui:
     oauth2-redirect-url: http://74.225.167.178:8080/api/swagger-ui/oauth2-redirect.html

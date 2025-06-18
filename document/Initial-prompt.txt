@@ -1,0 +1,149 @@
+# MDM Service - Spring Boot Enterprise Master Data Management Application
+
+You are assisting with a Spring Boot enterprise application called "MDM Service" that follows standard industry best practices for Java development. This service is responsible for Master Data Management (MDM) capabilities, providing a centralized system for managing, governing, and distributing master data entities across the organization. The application is built on a standardized foundation that ensures security, maintainability, and adherence to enterprise development best practices.
+
+## Technical Stack and Architecture
+
+- **Java Version**: Java 21 (Latest LTS)
+- **Framework**: Spring Boot 3.4.6 with Spring Cloud 2024.0.1
+- **Build System**: Gradle with dependency management
+- **Database**: PostgreSQL with Hibernate/JPA
+- **Security**: OAuth2/OpenID Connect using Keycloak 24.0.4 as identity provider
+- **API Documentation**: SpringDoc OpenAPI 2.7.0
+- **Monitoring**: Spring Boot Actuator with Prometheus metrics
+- **Dependency Security**: OWASP dependency check integration
+- **Code Quality**: Standard Java coding conventions and comprehensive documentation
+
+## Project Structure
+
+The project follows a standard layered architecture pattern with clear separation of concerns:
+
+```
+src/main/java/tech/oorjaa/demoservice/
+├── config/       # Application configuration classes
+├── constant/     # Application constants and enums
+├── controller/   # REST API controllers (presentation layer)
+├── dto/          # Data Transfer Objects for API input/output
+├── entity/       # JPA entity classes (data layer)
+├── exception/    # Custom exceptions and global error handling
+├── mapper/       # MapStruct mappers for entity-to-DTO conversion
+├── repository/   # Spring Data JPA repositories (data access layer)
+├── service/      # Business logic services (business layer)
+└── DemoApplication.java # Main application class
+```
+
+## Key Design Patterns and Features
+
+1. **Entity Auditing**: All entities extend `BaseEntity` which provides auditing fields (created/modified date and user)
+
+2. **DTO Pattern**: Strict separation between API contracts (DTOs) and internal data model (entities)
+
+3. **Authentication & Authorization**:
+   - Keycloak integration for identity management
+   - JWT token validation with custom role extraction
+   - Role-based access control at method and endpoint level
+
+4. **Configuration Management**:
+   - Environment-specific configuration (local, dev, stage)
+   - Typed configuration properties with validation
+   - Externalized sensitive configuration
+
+5. **API Documentation**:
+   - Auto-generated OpenAPI documentation
+   - Interactive Swagger UI (conditionally enabled)
+
+6. **Error Handling**:
+   - Standardized error responses
+   - Global exception handling
+   - Validation error mapping
+
+## MDM Domain Model
+
+The application implements a comprehensive Master Data Management model with these core entities:
+
+- **Company**: Represents an organization with details like name, contact info, branding
+- **User**: Represents system users with authentication info and company association
+
+The MDM service should be extended with domain-specific master data entities such as:
+
+- **Product**: Core product information independent of channels or systems
+- **Customer**: Consolidated customer data across all touchpoints
+- **Location**: Geographical and organizational locations
+- **Supplier**: Vendor and supplier master data
+- **Reference Data**: Code tables and reference data entities
+
+All entities include complete audit trails through the BaseEntity superclass, essential for regulatory compliance and data governance.
+
+### Data Governance Features
+
+The MDM service should implement these key data governance capabilities:
+
+1. **Data Quality Rules**: Validation rules to ensure data meets quality standards
+2. **Data Lineage**: Tracking of data origins and transformations
+3. **Version Control**: Historical versioning of master data records
+4. **Approval Workflows**: Multi-step approval processes for data changes
+5. **Golden Record Management**: Identification and maintenance of authoritative data records
+
+## Security Model
+
+The application uses OAuth2 resource server with JWT validation. Key security features:
+
+1. Stateless authentication using JWT tokens
+2. Integration with Keycloak for identity management
+3. Custom role extraction from JWT tokens
+4. CORS configuration for API access
+5. Method-level security using @PreAuthorize annotations
+
+## Environment Configuration
+
+The application supports multiple deployment environments with profile-specific configuration:
+
+- **local**: Local development environment
+- **dev**: Development/testing environment
+- **stage**: Staging/pre-production environment
+
+Database credentials and other sensitive information should be externalized using environment variables in production environments.
+
+## Development Guidelines
+
+1. **Naming Conventions**:
+   - Classes: PascalCase (e.g., UserService)
+   - Methods/variables: camelCase (e.g., getUserById)
+   - Constants: UPPER_SNAKE_CASE (e.g., MAX_RETRY_COUNT)
+   - Packages: lowercase with dots (e.g., tech.oorjaa.service)
+
+2. **Documentation**:
+   - All public classes and methods should have Javadoc comments
+   - API endpoints should include OpenAPI annotations
+   - Complex business logic should be clearly commented
+
+3. **Testing**:
+   - Unit tests for service and utility classes
+   - Integration tests for repositories and controllers
+   - Use Spring Boot Test framework for testing
+
+4. **Error Handling**:
+   - Use appropriate exception types
+   - Provide meaningful error messages
+   - Include sufficient context in logs
+
+5. **Security**:
+   - Never hardcode credentials
+   - Apply principle of least privilege
+   - Validate all user input
+   - Follow OWASP security guidelines
+
+## Extending the Application
+
+When adding new features to this application:
+
+1. Create or extend entities in the entity package
+2. Define repository interfaces extending JpaRepository
+3. Create service classes with business logic
+4. Define DTOs for API request/response objects
+5. Create MapStruct mappers for entity-DTO conversion
+6. Implement controllers with proper validation and error handling
+7. Add appropriate security constraints
+8. Document APIs using OpenAPI annotations
+
+This structure ensures maintainability, testability, and adherence to best practices in enterprise Java development.
