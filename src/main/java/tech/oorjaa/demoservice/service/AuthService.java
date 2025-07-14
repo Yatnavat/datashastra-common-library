@@ -3,7 +3,7 @@ package tech.oorjaa.demoservice.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -12,6 +12,7 @@ import org.springframework.web.client.RestTemplate;
 import tech.oorjaa.demoservice.dto.KeycloakTokenResponse;
 import tech.oorjaa.demoservice.dto.LoginRequest;
 import tech.oorjaa.demoservice.dto.LoginResponse;
+import tech.oorjaa.demoservice.config.KeycloakProperties;
 import tech.oorjaa.demoservice.entity.User;
 import tech.oorjaa.demoservice.exception.AuthenticationException;
 
@@ -25,20 +26,14 @@ import static org.keycloak.OAuth2Constants.*;
 @Service
 public class AuthService {
 
-    @Value("${keycloak.client-id}")
-    private String clientId;
-
-    @Value("${keycloak.client-secret}")
-    private String clientSecret;
-
-    @Value("${spring.security.oauth2.resourceserver.jwt.token-url}")
-    private String tokenUrl;
+    private final KeycloakProperties keycloakProperties;
 
     private final RestTemplate restTemplate;
     private final UserService userService;
     private final ObjectMapper objectMapper;
 
-    public AuthService(RestTemplate restTemplate, UserService userService, ObjectMapper objectMapper) {
+    public AuthService(KeycloakProperties keycloakProperties, RestTemplate restTemplate, UserService userService, ObjectMapper objectMapper) {
+        this.keycloakProperties = keycloakProperties;
         this.restTemplate = restTemplate;
         this.userService = userService;
         this.objectMapper = objectMapper;
@@ -68,8 +63,8 @@ public class AuthService {
     public LoginResponse authenticateUser(LoginRequest loginRequest) throws AuthenticationException {
         // Create request body for Keycloak token endpoint
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("client_id", clientId);
-        formData.add("client_secret", clientSecret);
+        formData.add("client_id", keycloakProperties.clientId());
+        formData.add("client_secret", keycloakProperties.clientSecret());
         formData.add("grant_type", "password");
         formData.add("username", loginRequest.getUsername());
         formData.add("password", loginRequest.getPassword());
@@ -84,7 +79,7 @@ public class AuthService {
         try {
             // Make the request to Keycloak token endpoint
             ResponseEntity<KeycloakTokenResponse> response = restTemplate.postForEntity(
-                    tokenUrl,
+                    keycloakProperties.baseUrl() + "/realms/" + keycloakProperties.realm() + "/protocol/openid-connect/token",
                     requestEntity,
                     KeycloakTokenResponse.class
             );
@@ -138,8 +133,8 @@ public class AuthService {
     public LoginResponse refreshToken(String refreshToken) throws AuthenticationException {
         // Create request body for Keycloak token endpoint
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("client_id", clientId);
-        formData.add("client_secret", clientSecret);
+        formData.add("client_id", keycloakProperties.clientId());
+        formData.add("client_secret", keycloakProperties.clientSecret());
         formData.add("grant_type", "refresh_token");
         formData.add("refresh_token", refreshToken);
 
@@ -153,7 +148,7 @@ public class AuthService {
         try {
             // Make the request to Keycloak token endpoint
             ResponseEntity<KeycloakTokenResponse> response = restTemplate.postForEntity(
-                    tokenUrl,
+                    keycloakProperties.baseUrl() + "/realms/" + keycloakProperties.realm() + "/protocol/openid-connect/token",
                     requestEntity,
                     KeycloakTokenResponse.class
             );
@@ -178,7 +173,7 @@ public class AuthService {
 
     private void setUserPermissions(LoginResponse loginResponse, String token) throws JsonProcessingException {
         MultiValueMap<String, String> request = new LinkedMultiValueMap<>();
-        request.add(AUDIENCE, clientId);
+        request.add(AUDIENCE, keycloakProperties.clientId());
         request.add(GRANT_TYPE, UMA_GRANT_TYPE);
 
         HttpHeaders headers = new HttpHeaders();
@@ -188,7 +183,7 @@ public class AuthService {
         HttpEntity<Object> entity = new HttpEntity<>(request, headers);
 
         KeycloakTokenResponse response = restTemplate.exchange(
-                tokenUrl,
+                keycloakProperties.baseUrl() + "/realms/" + keycloakProperties.realm() + "/protocol/openid-connect/token",
                 HttpMethod.POST,
                 entity,
                 KeycloakTokenResponse.class
