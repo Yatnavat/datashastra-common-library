@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import tech.oorjaa.demoservice.dto.ErrorResponse;
+import tech.oorjaa.demoservice.dto.StandardResponse;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -31,7 +32,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
+    public ResponseEntity<StandardResponse<Map<String, Object>>> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
         Map<String, Object> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
@@ -39,15 +40,14 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Validation error",
-                LocalDateTime.now(),
-                request.getDescription(false),
-                errors
-        );
+        StandardResponse<Map<String, Object>> response = StandardResponse.<Map<String, Object>>builder()
+                .success(false)
+                .message("Validation error")
+                .data(errors)
+                .path(request.getDescription(false))
+                .build();
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     /**
@@ -55,16 +55,15 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(EntityNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex, WebRequest request) {
+    public ResponseEntity<StandardResponse<Void>> handleEntityNotFound(EntityNotFoundException ex, WebRequest request) {
         log.error("Entity not found", ex);
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                LocalDateTime.now(),
-                request.getDescription(false),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        StandardResponse<Void> response = StandardResponse.<Void>builder()
+                .success(false)
+                .message(ex.getMessage())
+                .error("Entity not found")
+                .path(request.getDescription(false))
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     /**
@@ -72,16 +71,15 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
+    public ResponseEntity<StandardResponse<Void>> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
         log.error("Access denied", ex);
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.FORBIDDEN.value(),
-                "Access denied",
-                LocalDateTime.now(),
-                request.getDescription(false),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+        StandardResponse<Void> response = StandardResponse.<Void>builder()
+                .success(false)
+                .message("Access denied")
+                .error(ex.getMessage())
+                .path(request.getDescription(false))
+                .build();
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
     /**
@@ -89,15 +87,15 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NoHandlerFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseEntity<ErrorResponse> handleNoHandlerFound(NoHandlerFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                "Resource not found",
-                LocalDateTime.now(),
-                request.getDescription(false),
-                Map.of("path", ex.getRequestURL())
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    public ResponseEntity<StandardResponse<Map<String, Object>>> handleNoHandlerFound(NoHandlerFoundException ex, WebRequest request) {
+        StandardResponse<Map<String, Object>> response = StandardResponse.<Map<String, Object>>builder()
+                .success(false)
+                .message("Resource not found")
+                .error("No handler found for request")
+                .data(Map.of("path", ex.getRequestURL()))
+                .path(request.getDescription(false))
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     /**
@@ -105,7 +103,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex, WebRequest request) {
+    public ResponseEntity<StandardResponse<Map<String, Object>>> handleConstraintViolation(ConstraintViolationException ex, WebRequest request) {
         Map<String, Object> errors = new HashMap<>();
         ex.getConstraintViolations().forEach(violation -> {
             String propertyPath = violation.getPropertyPath().toString();
@@ -113,14 +111,14 @@ public class GlobalExceptionHandler {
             errors.put(propertyPath, message);
         });
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Constraint violation",
-                LocalDateTime.now(),
-                request.getDescription(false),
-                errors
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        StandardResponse<Map<String, Object>> response = StandardResponse.<Map<String, Object>>builder()
+                .success(false)
+                .message("Constraint violation")
+                .error("Validation constraints violated")
+                .data(errors)
+                .path(request.getDescription(false))
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     /**
@@ -128,15 +126,14 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ResponseEntity<ErrorResponse> handleAllUncaughtException(Exception ex, WebRequest request) {
+    public ResponseEntity<StandardResponse<Void>> handleAllUncaughtException(Exception ex, WebRequest request) {
         log.error("Unexpected error", ex);
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "An unexpected error occurred",
-                LocalDateTime.now(),
-                request.getDescription(false),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        StandardResponse<Void> response = StandardResponse.<Void>builder()
+                .success(false)
+                .message("An unexpected error occurred")
+                .error("Internal server error")
+                .path(request.getDescription(false))
+                .build();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

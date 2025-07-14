@@ -34,9 +34,6 @@ spring:
         jwt:
           issuer-uri: ${keycloak.base-url}/realms/${keycloak.realm}
           jwk-set-uri: ${keycloak.base-url}/realms/${keycloak.realm}/protocol/openid-connect/certs
-          token-url: ${keycloak.base-url}/realms/${keycloak.realm}/protocol/openid-connect/token
-          validate-token-url: ${keycloak.base-url}/realms/${keycloak.realm}/protocol/openid-connect/token/introspect
-          logout.url: ${keycloak.base-url}/admin/realms/${keycloak.realm}/users/{userId}/logout
 server:
   port: 8080
   servlet:

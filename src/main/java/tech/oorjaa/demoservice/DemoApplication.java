@@ -7,10 +7,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import tech.oorjaa.demoservice.config.AppProperties;
+import tech.oorjaa.demoservice.config.KeycloakProperties;
 
 @SpringBootApplication
 @EnableJpaAuditing
-@EnableConfigurationProperties(AppProperties.class)
+@EnableConfigurationProperties({AppProperties.class, KeycloakProperties.class})
 @OpenAPIDefinition(
 		info = @Info(
 				title = "Demo Service API",
