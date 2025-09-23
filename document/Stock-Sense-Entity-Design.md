@@ -895,8 +895,9 @@ public class TenantConfiguration extends BaseEntity {
 }
 ```
 
-## 📋 Repository Interfaces
+## 📋 Repository Organization by Service Domain
 
+### **Client Management Service Repositories**
 ```java
 @Repository
 public interface ClientRepository extends JpaRepository<Client, Long> {
@@ -904,12 +905,52 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     // Automatic tenant filtering via @TenantId
     List<Client> findByStatus(ClientStatus status);
 
-    Optional<Client> findByNameAndTenantId(String name, Long tenantId);
+    Optional<Client> findByName(String name);
 
     List<Client> findByStatusOrderByNameAsc(ClientStatus status);
 
-    @Query("SELECT COUNT(c) FROM Client c WHERE c.tenantId = :tenantId")
-    long countByTenantId(@Param("tenantId") Long tenantId);
+    @Query("SELECT c FROM Client c WHERE c.name LIKE %:name%")
+    List<Client> findByNameContaining(@Param("name") String name);
+
+    boolean existsByEmailAndTenantId(String email, Long tenantId);
+
+    @Query("SELECT COUNT(c) FROM Client c WHERE c.status = :status")
+    long countByStatus(@Param("status") ClientStatus status);
+}
+
+@Repository
+public interface ProjectRepository extends JpaRepository<Project, Long> {
+
+    List<Project> findByClientId(Long clientId);
+
+    List<Project> findByIndustryAndStatus(Industry industry, ProjectStatus status);
+
+    @Query("SELECT p FROM Project p WHERE p.client.id = :clientId AND p.status = :status")
+    List<Project> findActiveProjectsByClient(@Param("clientId") Long clientId, @Param("status") ProjectStatus status);
+
+    long countByClientIdAndStatus(Long clientId, ProjectStatus status);
+
+    @Query("SELECT p FROM Project p WHERE p.status = :status ORDER BY p.createdDate DESC")
+    Page<Project> findRecentProjectsByStatus(@Param("status") ProjectStatus status, Pageable pageable);
+}
+```
+
+### **Forecasting Service Repositories**
+```java
+@Repository
+public interface ActivityRepository extends JpaRepository<Activity, Long> {
+
+    List<Activity> findByProjectId(Long projectId);
+
+    List<Activity> findByStatusOrderByCreatedDateDesc(ActivityStatus status);
+
+    @Query("SELECT a FROM Activity a WHERE a.project.client.id = :clientId")
+    List<Activity> findByClientId(@Param("clientId") Long clientId);
+
+    long countByProjectIdAndStatus(Long projectId, ActivityStatus status);
+
+    @Query("SELECT a FROM Activity a WHERE a.project.id = :projectId AND a.status IN :statuses")
+    List<Activity> findByProjectAndStatuses(@Param("projectId") Long projectId, @Param("statuses") List<ActivityStatus> statuses);
 }
 
 @Repository
@@ -917,12 +958,138 @@ public interface ForecastRepository extends JpaRepository<Forecast, Long> {
 
     List<Forecast> findByActivityId(Long activityId);
 
-    List<Forecast> findByStatus(ForecastStatus status);
+    List<Forecast> findByStatusOrderByCreatedDateDesc(ForecastStatus status);
 
     @Query("SELECT f FROM Forecast f WHERE f.activity.project.client.id = :clientId")
     List<Forecast> findByClientId(@Param("clientId") Long clientId);
+
+    @Query("SELECT f FROM Forecast f WHERE f.status IN :statuses")
+    List<Forecast> findByStatusIn(@Param("statuses") List<ForecastStatus> statuses);
+
+    @Query("SELECT f FROM Forecast f WHERE f.activity.id = :activityId AND f.status = :status ORDER BY f.createdDate DESC")
+    Page<Forecast> findLatestForecastsByActivity(@Param("activityId") Long activityId, @Param("status") ForecastStatus status, Pageable pageable);
 }
 
+@Repository
+public interface ForecastResultRepository extends JpaRepository<ForecastResult, Long> {
+
+    Optional<ForecastResult> findByForecastId(Long forecastId);
+
+    @Query("SELECT fr FROM ForecastResult fr WHERE fr.forecast.activity.project.client.id = :clientId")
+    List<ForecastResult> findByClientId(@Param("clientId") Long clientId);
+
+    @Query("SELECT fr FROM ForecastResult fr WHERE fr.forecast.status = :forecastStatus")
+    List<ForecastResult> findByForecastStatus(@Param("forecastStatus") ForecastStatus forecastStatus);
+}
+```
+
+### **Data Management Service Repositories**
+```java
+@Repository
+public interface UploadedDataRepository extends JpaRepository<UploadedData, Long> {
+
+    List<UploadedData> findByActivityId(Long activityId);
+
+    List<UploadedData> findByValidationStatus(ValidationStatus validationStatus);
+
+    @Query("SELECT ud FROM UploadedData ud WHERE ud.activity.project.client.id = :clientId")
+    List<UploadedData> findByClientId(@Param("clientId") Long clientId);
+
+    @Query("SELECT ud FROM UploadedData ud WHERE ud.uploadTimestamp >= :startDate ORDER BY ud.uploadTimestamp DESC")
+    List<UploadedData> findRecentUploads(@Param("startDate") LocalDateTime startDate);
+
+    long countByActivityIdAndValidationStatus(Long activityId, ValidationStatus validationStatus);
+}
+
+@Repository
+public interface TransformedDataRepository extends JpaRepository<TransformedData, Long> {
+
+    Optional<TransformedData> findByUploadedDataId(Long uploadedDataId);
+
+    List<TransformedData> findByStatus(TransformationStatus status);
+
+    @Query("SELECT td FROM TransformedData td WHERE td.uploadedData.activity.id = :activityId")
+    List<TransformedData> findByActivityId(@Param("activityId") Long activityId);
+
+    @Query("SELECT td FROM TransformedData td WHERE td.status = :status ORDER BY td.transformationTimestamp DESC")
+    Page<TransformedData> findRecentTransformations(@Param("status") TransformationStatus status, Pageable pageable);
+}
+
+@Repository
+public interface ValidationResultRepository extends JpaRepository<ValidationResult, Long> {
+
+    Optional<ValidationResult> findByUploadedDataId(Long uploadedDataId);
+
+    List<ValidationResult> findByStatus(ValidationStatus status);
+
+    @Query("SELECT vr FROM ValidationResult vr WHERE vr.uploadedData.activity.project.client.id = :clientId")
+    List<ValidationResult> findByClientId(@Param("clientId") Long clientId);
+
+    @Query("SELECT COUNT(vr) FROM ValidationResult vr WHERE vr.status = :status")
+    long countByStatus(@Param("status") ValidationStatus status);
+}
+```
+
+### **Model and Configuration Service Repositories**
+```java
+@Repository
+public interface ModelRepository extends JpaRepository<Model, Long> {
+
+    List<Model> findByModelType(ModelType modelType);
+
+    List<Model> findByStatusOrderByAccuracyDesc(ModelStatus status);
+
+    @Query("SELECT m FROM Model m WHERE m.isRecommended = true AND m.status = :status")
+    List<Model> findRecommendedModels(@Param("status") ModelStatus status);
+
+    @Query("SELECT m FROM Model m WHERE m.complexity <= :maxComplexity ORDER BY m.accuracy DESC")
+    List<Model> findModelsByComplexity(@Param("maxComplexity") Integer maxComplexity);
+}
+
+@Repository
+public interface FeaturesRepository extends JpaRepository<Features, Long> {
+
+    Optional<Features> findByForecastId(Long forecastId);
+
+    @Query("SELECT f FROM Features f WHERE f.forecast.activity.project.client.id = :clientId")
+    List<Features> findByClientId(@Param("clientId") Long clientId);
+
+    List<Features> findByStatus(FeatureStatus status);
+}
+
+@Repository
+public interface AggregationRepository extends JpaRepository<Aggregation, Long> {
+
+    Optional<Aggregation> findByForecastId(Long forecastId);
+
+    @Query("SELECT a FROM Aggregation a WHERE a.forecast.activity.project.client.id = :clientId")
+    List<Aggregation> findByClientId(@Param("clientId") Long clientId);
+}
+
+@Repository
+public interface DateRangeConfigurationRepository extends JpaRepository<DateRangeConfiguration, Long> {
+
+    Optional<DateRangeConfiguration> findByForecastId(Long forecastId);
+
+    @Query("SELECT drc FROM DateRangeConfiguration drc WHERE drc.trainingStartDate >= :startDate")
+    List<DateRangeConfiguration> findByTrainingStartAfter(@Param("startDate") LocalDate startDate);
+}
+
+@Repository
+public interface ExploratoryDataAnalyticsRepository extends JpaRepository<ExploratoryDataAnalytics, Long> {
+
+    Optional<ExploratoryDataAnalytics> findByForecastId(Long forecastId);
+
+    @Query("SELECT eda FROM ExploratoryDataAnalytics eda WHERE eda.forecast.activity.project.client.id = :clientId")
+    List<ExploratoryDataAnalytics> findByClientId(@Param("clientId") Long clientId);
+
+    @Query("SELECT eda FROM ExploratoryDataAnalytics eda WHERE eda.forecast.status = :forecastStatus")
+    List<ExploratoryDataAnalytics> findByForecastStatus(@Param("forecastStatus") ForecastStatus forecastStatus);
+}
+```
+
+### **Tenant Management Service Repositories**
+```java
 @Repository
 public interface TenantRepository extends JpaRepository<Tenant, Long> {
 
