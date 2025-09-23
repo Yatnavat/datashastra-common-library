@@ -11,7 +11,14 @@
 │ name            │     │ email           │     │ modifiedDate    │
 │ legalName       │     │ firstName       │     │ createdBy       │
 │ contactEmail    │     │ lastName        │     │ modifiedBy      │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
+│ keycloakEnabled │     │                 │     └─────────────────┘
+│ keycloakServerUrl│     │                 │             ▲
+│ keycloakRealm   │     │                 │             │
+│ keycloakClientId│     │                 │             │ extends
+│ keycloakSecret  │     │                 │             │
+│ keycloakAdminUser│    │                 │             │
+│ keycloakAdminPwd│     │                 │             │
+└─────────────────┘     └─────────────────┘
          │                       │                       ▲
          │                       │                       │
          │                       │                       │ extends
@@ -264,6 +271,98 @@ Start with Client entity and work through the complete hierarchy systematically.
 ```
 
 ## 🏗️ Standard Entity Templates
+
+### **Tenant Entity Template (Enhanced with Keycloak Configuration)**
+```java
+@Entity
+@Table(name = "tenant", indexes = {
+    @Index(name = "idx_tenant_name", columnList = "name"),
+    @Index(name = "idx_tenant_keycloak_enabled", columnList = "keycloak_enabled")
+})
+@Getter
+@Setter
+public class Tenant extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotBlank
+    @Size(max = 100)
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @Size(max = 200)
+    @Column(name = "legal_name")
+    private String legalName;
+
+    @Email
+    @Column(name = "contact_email")
+    private String contactEmail;
+
+    // Multi-Tenant Keycloak Configuration
+    @Column(name = "keycloak_enabled", nullable = false)
+    private Boolean keycloakEnabled = true;
+
+    @Column(name = "keycloak_server_url", length = 500)
+    private String keycloakServerUrl;
+
+    @Column(name = "keycloak_realm", length = 100)
+    private String keycloakRealm;
+
+    @Column(name = "keycloak_client_id", length = 100)
+    private String keycloakClientId;
+
+    @Column(name = "keycloak_client_secret", length = 500)
+    private String keycloakClientSecret;
+
+    @Column(name = "keycloak_admin_username", length = 100)
+    private String keycloakAdminUsername;
+
+    @Column(name = "keycloak_admin_password", length = 500)
+    private String keycloakAdminPassword;
+
+    // Status and configuration
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private TenantStatus status = TenantStatus.ACTIVE;
+
+    // Version control for critical entity
+    @Version
+    private Long version;
+
+    // Helper methods for Keycloak configuration
+    public boolean isKeycloakConfigured() {
+        return keycloakEnabled &&
+               keycloakServerUrl != null &&
+               keycloakRealm != null &&
+               keycloakClientId != null;
+    }
+
+    public String buildKeycloakIssuerUrl() {
+        if (!isKeycloakConfigured()) {
+            return null;
+        }
+        return String.format("%s/realms/%s", keycloakServerUrl, keycloakRealm);
+    }
+
+    public String buildKeycloakJwkSetUrl() {
+        String issuer = buildKeycloakIssuerUrl();
+        return issuer != null ? issuer + "/protocol/openid-connect/certs" : null;
+    }
+}
+
+public enum TenantStatus {
+    ACTIVE("Active"),
+    INACTIVE("Inactive"),
+    SUSPENDED("Suspended"),
+    PENDING_SETUP("Pending Setup");
+
+    private final String displayName;
+    TenantStatus(String displayName) { this.displayName = displayName; }
+    public String getDisplayName() { return displayName; }
+}
+```
 
 ### **Root Entity Template (Client)**
 ```java
@@ -734,6 +833,68 @@ public class Forecast extends BaseEntity {
 }
 ```
 
+### **Tenant Configuration Entity (Optional Multi-Tenant Settings)**
+```java
+@Entity
+@Table(name = "tenant_configuration", indexes = {
+    @Index(name = "idx_tenant_config_tenant", columnList = "tenant_id"),
+    @Index(name = "idx_tenant_config_key", columnList = "key"),
+    @Index(name = "idx_tenant_config_tenant_key", columnList = "tenant_id,key")
+})
+@Getter
+@Setter
+public class TenantConfiguration extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @TenantId
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
+    @NotBlank
+    @Size(max = 255)
+    @Column(name = "`key`", nullable = false)
+    private String key;
+
+    @Column(name = "`value`", length = 10000)
+    private String value;
+
+    @Column(name = "details", length = 1000)
+    private String details;
+
+    @Column(name = "data_type", length = 50)
+    private String dataType;
+
+    @Column(name = "data_sub_type", length = 50)
+    private String dataSubType;
+
+    @Column(name = "is_encrypted")
+    private Boolean isEncrypted = false;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
+    // Helper methods for typed value access
+    public String getStringValue() {
+        return value;
+    }
+
+    public Integer getIntegerValue() {
+        return value != null ? Integer.valueOf(value) : null;
+    }
+
+    public Boolean getBooleanValue() {
+        return value != null ? Boolean.valueOf(value) : null;
+    }
+
+    public Double getDoubleValue() {
+        return value != null ? Double.valueOf(value) : null;
+    }
+}
+```
+
 ## 📋 Repository Interfaces
 
 ```java
@@ -760,6 +921,42 @@ public interface ForecastRepository extends JpaRepository<Forecast, Long> {
 
     @Query("SELECT f FROM Forecast f WHERE f.activity.project.client.id = :clientId")
     List<Forecast> findByClientId(@Param("clientId") Long clientId);
+}
+
+@Repository
+public interface TenantRepository extends JpaRepository<Tenant, Long> {
+
+    Optional<Tenant> findByName(String name);
+
+    List<Tenant> findByStatus(TenantStatus status);
+
+    List<Tenant> findByKeycloakEnabled(Boolean keycloakEnabled);
+
+    @Query("SELECT t FROM Tenant t WHERE t.keycloakEnabled = true AND t.keycloakServerUrl IS NOT NULL")
+    List<Tenant> findActiveKeycloakTenants();
+
+    Optional<Tenant> findByKeycloakRealm(String realm);
+}
+
+@Repository
+public interface TenantConfigurationRepository extends JpaRepository<TenantConfiguration, Long> {
+
+    // Automatic tenant filtering via @TenantId
+    List<TenantConfiguration> findByKey(String key);
+
+    Optional<TenantConfiguration> findByTenantIdAndKey(Long tenantId, String key);
+
+    List<TenantConfiguration> findByTenantIdAndIsActive(Long tenantId, Boolean isActive);
+
+    @Query("SELECT tc FROM TenantConfiguration tc WHERE tc.tenantId = :tenantId AND tc.key LIKE :keyPattern")
+    List<TenantConfiguration> findByTenantAndKeyPattern(@Param("tenantId") Long tenantId,
+                                                       @Param("keyPattern") String keyPattern);
+
+    @Modifying
+    @Query("UPDATE TenantConfiguration tc SET tc.value = :value WHERE tc.tenantId = :tenantId AND tc.key = :key")
+    int updateConfigValue(@Param("tenantId") Long tenantId,
+                         @Param("key") String key,
+                         @Param("value") String value);
 }
 ```
 
