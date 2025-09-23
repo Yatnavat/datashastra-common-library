@@ -4,26 +4,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Spring Boot 3.4.6 application with Java 21, designed as a starter template for enterprise services. It includes authentication via Keycloak, PostgreSQL integration, and follows clean architecture patterns with comprehensive security configuration.
+**datashastra-common-library** is a Java library built with Spring Boot 3.5.4 and Java 21, designed to provide shared components for DataShastra microservices. This library contains reusable JPA entities, DTOs, mappers, constants, and utilities that can be consumed by multiple Spring Boot applications within the DataShastra ecosystem.
+
+**Key Library Features:**
+- **Shared Entities**: Common JPA entities with audit support (BaseEntity)
+- **Standardized DTOs**: Response models, error handling, and authentication DTOs
+- **Mappers**: MapStruct-based type-safe mapping utilities
+- **Constants**: Shared application constants and service definitions
+- **Utilities**: Common helper classes and configuration beans
+
+**Library Usage:**
+This library is published to GitHub Packages and can be imported as a dependency in other DataShastra projects. It eliminates code duplication across microservices and ensures consistent data models and response formats.
 
 ## Development Commands
 
-### Build and Run
+### Build and Publish
 ```bash
-# Build the application
+# Build the library
 ./gradlew build
 
-# Run the application (default profile: local)
-./gradlew bootRun
+# Publish to local Maven repository
+./gradlew publishToMavenLocal
 
-# Run with specific profile
-./gradlew bootRun --args='--spring.profiles.active=dev'
+# Publish to GitHub Packages
+./gradlew publish
 
-# Create executable JAR
-./gradlew bootJar
-
-# Build Docker image
-./gradlew bootBuildImage
+# Clean build directory
+./gradlew clean
 ```
 
 ### Testing
@@ -34,62 +41,39 @@ This is a Spring Boot 3.4.6 application with Java 21, designed as a starter temp
 # Run tests with coverage
 ./gradlew test
 
-# Run single test class
-./gradlew test --tests "tech.oorjaa.demoservice.controller.AuthControllerTest"
-
 # Compile test classes only
 ./gradlew compileTestJava
 ```
 
-### Test Configuration
-- **Test Database**: H2 in-memory database (automatically configured)
-- **Test Profile**: Uses `application-test.yml` with profile `test`
-- **Security**: Simplified security configuration for testing via `TestConfigurationSetup`
-- **Test Data**: `TestDataBuilder` utility class provides pre-configured test entities and DTOs
+## Library Components
 
-### Security and Quality
-```bash
-# Run OWASP dependency vulnerability scan
-./gradlew dependencyCheckAnalyze
+This library is organized into the following packages under `tech.oorjaa.datashastra`:
 
-# Update CVE database
-./gradlew dependencyCheckUpdate
+### Core Entities (`entity/`)
+- **BaseEntity**: Abstract base class providing audit fields (created/modified dates and users)
+- **User**: User entity with Keycloak integration and tenant support
+- **Tenant**: Multi-tenant support entity
 
-# Clean build directory
-./gradlew clean
-```
+### Data Transfer Objects (`dto/`)
+- **StandardResponse<T>**: Generic response wrapper with success/error states
+- **ErrorResponse**: Standardized error response format
+- **UserDto**: User data transfer object
+- **LoginRequest/LoginResponse**: Authentication DTOs
+- **RefreshTokenRequest**: Token refresh DTO
+- **KeycloakTokenResponse**: Keycloak integration DTO
+- **CompanyDto**: Company/organization DTO
 
-## Architecture Overview
+### Mappers (`mapper/`)
+- **UserMapper**: MapStruct mapper for User entity/DTO conversion
+- **CompanyMapper**: MapStruct mapper for Company entity/DTO conversion
 
-### Core Components
+### Constants (`constant/`)
+- **ServiceConstants**: Shared application constants and service definitions
 
-**Authentication & Security**
-- `SecurityConfig.java` - Main security configuration with JWT/OAuth2 setup
-- `KeycloakRoleConverter.java` - Converts Keycloak roles to Spring Security authorities
-- `AuthService.java` - Handles authentication with Keycloak token exchange
-- JWT-based authentication with Keycloak integration
-
-**Data Layer**
-- `BaseEntity.java` - Provides audit fields (created/modified dates and users) for all entities
-- All entities extend BaseEntity for consistent audit tracking
-- PostgreSQL with JPA/Hibernate
-- Repository pattern with Spring Data JPA
-
-**Service Layer**
-- Services handle business logic and transaction management
-- `UserContextService.java` - Manages current user context from security context
-- Services interact with repositories and external systems (Keycloak)
-
-**Web Layer**
-- Controllers handle HTTP requests and responses
-- `GlobalExceptionHandler.java` - Centralized exception handling
-- DTOs for request/response objects
-
-**Configuration**
-- `AppProperties.java` - Application-specific configuration properties
-- `CommonBeanConfig.java` - Common bean definitions
-- `OpenApiConfig.java` - Swagger/OpenAPI configuration
-- `MapperConfig.java` - MapStruct configuration
+### Additional Components
+- **Configuration classes**: Common Spring configuration beans
+- **Exception handling**: Standardized error response structures
+- **Utilities**: Helper classes for common operations
 
 ### Key Patterns
 
@@ -109,46 +93,140 @@ This is a Spring Boot 3.4.6 application with Java 21, designed as a starter temp
 - `application-dev.yml` - Development environment
 - `application-stage.yml` - Staging environment
 
-## Database
+## Library Integration
 
-**Connection**: PostgreSQL database configured per environment profile
+### Adding to Your Project
 
-**Schema Management**: SQL scripts in `src/main/resources/sql/` for initial data loading
+**Gradle (build.gradle):**
+```gradle
+dependencies {
+    implementation 'tech.oorjaa:datashastra-common-library:0.0.1-SNAPSHOT'
+}
+```
 
-**Auditing**: All entities automatically track creation/modification timestamps and user information via BaseEntity
+**Maven (pom.xml):**
+```xml
+<dependency>
+    <groupId>tech.oorjaa</groupId>
+    <artifactId>datashastra-common-library</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</dependency>
+```
 
-## Environment Profiles
+### GitHub Packages Authentication
+This library is published to GitHub Packages. Configure your build tool with appropriate credentials:
 
-- `local` - Default profile for local development
-- `dev` - Development environment with external dependencies
-- `stage` - Staging environment configuration
+**Gradle:**
+```gradle
+repositories {
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/Yatnavat/datashastra-common-library")
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
+}
+```
 
-## API Documentation
+### Usage Examples
 
-Swagger UI is available at `/swagger-ui.html` when `app.exposeSwagger=true`
+**Using StandardResponse:**
+```java
+@RestController
+public class MyController {
+    @GetMapping("/users")
+    public StandardResponse<List<UserDto>> getUsers() {
+        List<UserDto> users = userService.getAllUsers();
+        return StandardResponse.success(users, "Users retrieved successfully");
+    }
+}
+```
+
+**Extending BaseEntity:**
+```java
+@Entity
+@Table(name = "my_entity")
+public class MyEntity extends BaseEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // Other fields...
+}
+```
+
+## Database Integration
+
+**Connection**: This library provides entities that work with PostgreSQL databases
+
+**Auditing**: All entities extending BaseEntity automatically track creation/modification timestamps and user information
+
+**Multi-tenancy**: Entities support tenant-based data isolation using `@TenantId` annotation
 
 ## Security Notes
 
-- CORS configured to allow all origins (should be restricted in production)
-- JWT tokens validated against Keycloak
-- Password fields are never included in API responses
-- OWASP dependency scanning configured with quality gates
-
-## Development Guidelines
-
-### API Development
-Follow the comprehensive API Guidelines in `document/API-Guidelines.md` for consistent API development:
-- **Layered Architecture**: API (Controller) → Service → Repository → Mapper
-- RESTful conventions with proper HTTP methods and status codes
-- OpenAPI documentation with comprehensive annotations
-- Standardized error handling and response formats
-- Security best practices with JWT authentication
+- Password fields are explicitly ignored in DTO mappings for security
+- Entities support Keycloak integration for authentication
+- Standardized error responses prevent information leakage
 - Input validation using Jakarta validation annotations
 
-### Entity Modeling
-Follow the MDM Entity Guidelines in `document/MDM-Entity-Guidelines.md` for consistent entity modeling:
-- All entities extend BaseEntity for audit fields
-- Use business keys for natural identifiers
-- Implement proper validation annotations
-- Follow hierarchical relationship patterns
-- Include status and versioning fields where appropriate
+## Library Development Guidelines
+
+### Adding New Components
+
+**New Entities:**
+- Always extend `BaseEntity` for audit support
+- Use appropriate validation annotations (`@NotBlank`, `@Email`, etc.)
+- Include `@TenantId` for multi-tenant entities
+- Follow naming conventions and table mappings
+
+**New DTOs:**
+- Create corresponding DTOs for entities
+- Use MapStruct mappers for type-safe conversion
+- Follow the `StandardResponse<T>` pattern for API responses
+- Exclude sensitive fields (passwords) from DTOs
+
+**New Mappers:**
+- Use MapStruct for entity-DTO conversion
+- Configure as Spring components with `@Mapper(componentModel = "spring")`
+- Explicitly ignore sensitive fields in mappings
+- Handle nested object mappings appropriately
+
+### Library Publishing
+
+**Version Management:**
+- Follow semantic versioning (MAJOR.MINOR.PATCH)
+- Update version in `build.gradle` before publishing
+- Create git tags for releases
+
+**Publishing Process:**
+```bash
+# 1. Update version in build.gradle
+# 2. Build and test
+./gradlew clean build test
+
+# 3. Publish to local for testing
+./gradlew publishToMavenLocal
+
+# 4. Publish to GitHub Packages
+./gradlew publish
+```
+
+### Consumer Project Integration
+
+When other projects consume this library:
+- Import only necessary components
+- Configure Spring Data JPA auditing if using BaseEntity
+- Set up proper database configuration for entities
+- Configure MapStruct annotation processing
+- Handle multi-tenancy if using tenant-aware entities
+
+### Best Practices
+
+- **Backward Compatibility**: Maintain API compatibility when adding new features
+- **Documentation**: Update CLAUDE.md when adding new components
+- **Testing**: Add comprehensive tests for new functionality
+- **Security**: Never expose sensitive data in DTOs or responses
+- **Dependencies**: Keep library dependencies minimal and well-documented

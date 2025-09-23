@@ -90,13 +90,13 @@ Mappers handle conversion between DTOs and entities using MapStruct.
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface UserMapper {
     
-    @Mapping(target = "companyId", source = "company.id")
-    @Mapping(target = "companyName", source = "company.name")
+    @Mapping(target = "companyId", source = "tenant.id")
+    @Mapping(target = "companyName", source = "tenant.name")
     @Mapping(target = "password", ignore = true)
     UserDto toDto(User user);
     
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "company", ignore = true)
+    @Mapping(target = "tenant", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
     @Mapping(target = "lastModifiedDate", ignore = true)
     User toEntity(UserDto userDto);
@@ -121,7 +121,7 @@ public interface UserMapper {
 /api/v1/users                    # List all users
 /api/v1/users/{id}               # Get specific user
 /api/v1/users/{id}/companies     # Get user's companies
-/api/v1/companies/{id}/users     # Get company's users
+/api/v1/companies/{id}/users     # Get tenant's users
 ```
 
 ### 3. HTTP Status Codes

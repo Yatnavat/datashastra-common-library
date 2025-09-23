@@ -62,7 +62,7 @@ src/main/java/tech/oorjaa/demoservice/
 The application implements a comprehensive Master Data Management model with these core entities:
 
 - **Company**: Represents an organization with details like name, contact info, branding
-- **User**: Represents system users with authentication info and company association
+- **User**: Represents system users with authentication info and tenant association
 
 The MDM service should be extended with domain-specific master data entities such as:
 
