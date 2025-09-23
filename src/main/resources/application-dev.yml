@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://dev.oorjaa.tech:5432/demo
-    username: demo_user
-    password: jgjg90KD#22
+    url: jdbc:postgresql://4.213.126.121:5432/db_datashastra
+    username: stocksense_user
+    password: kgKFld23$123
     driver-class-name: org.postgresql.Driver
     hikari:
       connection-timeout: 30000
