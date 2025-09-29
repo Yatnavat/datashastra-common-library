@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Selection - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #030213;
+            --color-secondary: #4A90E2;
+            --color-background: #f8f9fa;
+            --color-card-bg: #ffffff;
+            --color-border: #e0e0e0;
+            --color-text-primary: #333333;
+            --color-text-secondary: #666666;
+            --color-text-muted: #999999;
+            --color-success: #10B981;
+            --color-success-light: #D1FAE5;
+            --color-warning: #F59E0B;
+            --color-warning-light: #FEF3C7;
+            --color-error: #EF4444;
+            --color-info: #3B82F6;
+            --color-info-light: #DBEAFE;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.16);
+            --shadow-lg: 0 10px 20px rgba(0,0,0,0.19);
+            --transition-fast: 200ms ease;
+            --transition-normal: 300ms ease;
+            --sidebar-width: 420px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--color-text-primary);
+            background-color: var(--color-background);
+        }
+
+        /* ============================================
+           COMPONENT: AppLayout
+           Future: app-layout.component.css
+           ============================================ */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowSidebar
+           Future: workflow-sidebar.component.css
+           ============================================ */
+        .workflow-sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .workflow-sidebar__header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .workflow-sidebar__title {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .workflow-sidebar__subtitle {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+        }
+
+        .workflow-sidebar__steps {
+            padding: var(--spacing-md);
+            flex: 1;
+        }
+
+        .workflow-sidebar__actions {
+            padding: var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .workflow-sidebar__action {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: background var(--transition-fast);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .workflow-sidebar__action:hover {
+            background: var(--color-background);
+        }
+
+        .workflow-sidebar__progress {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--color-background);
+            border-radius: var(--radius-sm);
+            margin: var(--spacing-md) var(--spacing-lg);
+        }
+
+        .workflow-sidebar__progress-label {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .workflow-sidebar__progress-bar {
+            height: 8px;
+            background: var(--color-border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .workflow-sidebar__progress-fill {
+            height: 100%;
+            background: var(--color-success);
+            width: 50%;
+            transition: width var(--transition-normal);
+        }
+
+        .workflow-step {
+            display: flex;
+            align-items: flex-start;
+            padding: var(--spacing-md) var(--spacing-lg);
+            margin-bottom: var(--spacing-xs);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+            position: relative;
+        }
+
+        .workflow-step:hover:not(.workflow-step--active):not(.workflow-step--disabled) {
+            background: var(--color-background);
+        }
+
+        .workflow-step--completed {
+            cursor: pointer;
+        }
+
+        .workflow-step--active {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .workflow-step--disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .workflow-step__indicator {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: var(--spacing-md);
+            flex-shrink: 0;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .workflow-step--completed .workflow-step__indicator {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .workflow-step--active .workflow-step__indicator {
+            background: white;
+            color: var(--color-primary);
+        }
+
+        .workflow-step--disabled .workflow-step__indicator,
+        .workflow-step:not(.workflow-step--completed):not(.workflow-step--active) .workflow-step__indicator {
+            background: var(--color-background);
+            color: var(--color-text-secondary);
+        }
+
+        .workflow-step__content {
+            flex: 1;
+        }
+
+        .workflow-step__title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .workflow-step--active .workflow-step__title {
+            color: white;
+        }
+
+        .workflow-step__description {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+        }
+
+        .workflow-step--active .workflow-step__description {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .workflow-step__checkmark {
+            width: 16px;
+            height: 16px;
+            color: white;
+        }
+
+        .workflow-step__icon {
+            width: 20px;
+            height: 20px;
+            margin-right: var(--spacing-sm);
+        }
+
+        /* Connecting lines between steps */
+        .workflow-step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            left: 31px;
+            top: 48px;
+            width: 2px;
+            height: calc(100% + 4px);
+            background: var(--color-border);
+        }
+
+        .workflow-step--completed:not(:last-child)::after {
+            background: var(--color-success);
+        }
+
+        /* ============================================
+           COMPONENT: MainContent
+           Future: main-content.component.css
+           ============================================ */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* ============================================
+           COMPONENT: FeatureSelectionContainer
+           Future: feature-selection.component.css
+           ============================================ */
+        .feature-selection-container {
+            padding: var(--spacing-lg);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .feature-selection__header {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .feature-selection__title-section {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .feature-selection__title {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .feature-selection__description {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .feature-selection__forecast-label {
+            position: absolute;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        /* ============================================
+           COMPONENT: FeatureStatsSummary
+           ============================================ */
+        .feature-stats-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            text-align: center;
+        }
+
+        .feature-stats-summary__item {
+            background: white;
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .feature-stats-summary__value {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .feature-stats-summary__label {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ============================================
+           COMPONENT: FeatureCategories
+           ============================================ */
+        .feature-categories {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .feature-category {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .feature-category__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .feature-category__icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .feature-category__title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+        }
+
+        .feature-category__description {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .feature-item {
+            padding: var(--spacing-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--spacing-md);
+            transition: all var(--transition-fast);
+        }
+
+        .feature-item--enabled {
+            background: var(--color-success-light);
+            border-color: var(--color-success);
+        }
+
+        .feature-item__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .feature-item__checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .feature-item__checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .feature-item__name {
+            font-weight: 500;
+            color: var(--color-text-primary);
+        }
+
+        .feature-item__badge {
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .feature-item__badge--high {
+            background: var(--color-success-light);
+            color: var(--color-success);
+        }
+
+        .feature-item__badge--medium {
+            background: var(--color-warning-light);
+            color: var(--color-warning);
+        }
+
+        .feature-item__description {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .feature-item__options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-sm);
+        }
+
+        .feature-option {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .feature-option__checkbox {
+            width: 16px;
+            height: 16px;
+        }
+
+        .feature-option__label {
+            font-size: 13px;
+            color: var(--color-text-primary);
+        }
+
+        .feature-option--disabled {
+            opacity: 0.5;
+        }
+
+        /* ============================================
+           COMPONENT: FeatureRecommendations
+           ============================================ */
+        .feature-recommendations {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .feature-recommendations__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .feature-recommendations__icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .feature-recommendations__title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+        }
+
+        .feature-recommendations__subtitle {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .feature-recommendations__grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .recommendation-item {
+            padding: var(--spacing-md);
+            border-radius: var(--radius-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .recommendation-item--high {
+            background: var(--color-success-light);
+        }
+
+        .recommendation-item--medium {
+            background: #F3F4F6;
+        }
+
+        .recommendation-item__info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .recommendation-item__indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--color-success);
+        }
+
+        .recommendation-item__name {
+            font-weight: 500;
+            color: var(--color-text-primary);
+        }
+
+        .recommendation-item__category {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            margin-left: var(--spacing-xs);
+        }
+
+        .recommendation-item__importance {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .recommendation-item__percentage {
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+
+        .recommendation-item__label {
+            font-size: 11px;
+            color: var(--color-text-secondary);
+        }
+
+        /* ============================================
+           COMPONENT: FeatureConfigurationSummary
+           ============================================ */
+        .feature-summary {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .feature-summary__title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .feature-summary__subtitle {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .feature-summary__grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-lg);
+        }
+
+        .feature-summary__group {
+            padding: var(--spacing-md);
+            background: var(--color-background);
+            border-radius: var(--radius-sm);
+        }
+
+        .feature-summary__group-title {
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .feature-summary__item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-xs) 0;
+            font-size: 13px;
+        }
+
+        .feature-summary__item-label {
+            color: var(--color-text-secondary);
+        }
+
+        .feature-summary__item-value {
+            color: var(--color-text-primary);
+            font-weight: 500;
+        }
+
+        /* ============================================
+           COMPONENT: FeatureImpact
+           ============================================ */
+        .feature-impact {
+            background: var(--color-info-light);
+            border: 1px solid var(--color-info);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-sm);
+        }
+
+        .feature-impact__icon {
+            width: 20px;
+            height: 20px;
+            color: var(--color-info);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .feature-impact__content {
+            flex: 1;
+        }
+
+        .feature-impact__title {
+            font-weight: 500;
+            color: var(--color-info);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .feature-impact__description {
+            font-size: 14px;
+            color: var(--color-text-primary);
+            line-height: 1.5;
+        }
+
+        /* ============================================
+           COMPONENT: CompletionMessage
+           ============================================ */
+        .completion-message {
+            background: white;
+            border: 1px solid var(--color-success);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .completion-message__icon {
+            width: 20px;
+            height: 20px;
+            color: var(--color-success);
+        }
+
+        .completion-message__text {
+            font-size: 14px;
+            color: var(--color-text-primary);
+        }
+
+        /* ============================================
+           COMPONENT: ActionBar
+           ============================================ */
+        .action-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-md);
+            padding: var(--spacing-lg) 0;
+        }
+
+        .action-bar__button {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: 1px solid var(--color-border);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .action-bar__button--secondary {
+            background: white;
+            color: var(--color-text-primary);
+        }
+
+        .action-bar__button--secondary:hover {
+            background: var(--color-background);
+        }
+
+        .action-bar__button--primary {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .action-bar__button--primary:hover {
+            background: #0a0a1a;
+        }
+
+        .action-bar__button--primary:disabled {
+            background: var(--color-border);
+            border-color: var(--color-border);
+            color: var(--color-text-muted);
+            cursor: not-allowed;
+        }
+
+        .action-bar__button-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN
+           ============================================ */
+        @media (max-width: 768px) {
+            .workflow-sidebar {
+                display: none;
+            }
+
+            .feature-selection-container {
+                padding: var(--spacing-md);
+            }
+
+            .feature-stats-summary {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-md);
+            }
+
+            .feature-categories {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-recommendations__grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-summary__grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-bar {
+                flex-direction: column;
+            }
+
+            .action-bar__button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .workflow-sidebar {
+                width: 300px;
+            }
+
+            .feature-categories {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ============================================
+           UTILITY CLASSES
+           ============================================ */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .ng-repeat-item {
+            /* Placeholder for Angular *ngFor */
+        }
+
+        .ng-condition {
+            /* Placeholder for Angular *ngIf */
+        }
+    </style>
+</head>
+<body>
+    <!--
+    TypeScript Interfaces:
+    ======================
+    interface WorkflowStep {
+        id: number;
+        name: string;
+        description: string;
+        status: 'completed' | 'active' | 'disabled';
+        route: string;
+    }
+
+    interface ActivityInfo {
+        name: string;
+        client: string;
+        project: string;
+    }
+
+    interface FeatureCategory {
+        id: string;
+        name: string;
+        description: string;
+        icon: string;
+        features: Feature[];
+    }
+
+    interface Feature {
+        id: string;
+        name: string;
+        description: string;
+        enabled: boolean;
+        impact: 'High' | 'Medium' | 'Low';
+        category: string;
+        options?: FeatureOption[];
+    }
+
+    interface FeatureOption {
+        id: string;
+        label: string;
+        enabled: boolean;
+    }
+
+    interface FeatureRecommendation {
+        name: string;
+        category: string;
+        importance: number;
+        enabled: boolean;
+    }
+
+    Sample Data:
+    ============
+    const featureConfiguration = {
+        totalFeatures: 25,
+        estimatedTime: 3,
+        recommendedCount: 6,
+        completedCount: 8,
+        categories: [
+            {
+                id: 'temporal',
+                name: 'Temporal Features',
+                description: 'Time-based patterns and historical dependencies',
+                features: [
+                    {
+                        id: 'lag',
+                        name: 'Lag Features',
+                        description: 'Lag periods (days)',
+                        impact: 'High',
+                        enabled: true,
+                        options: [
+                            { id: '1d', label: '1d', enabled: true },
+                            { id: '7d', label: '7d', enabled: true },
+                            { id: '14d', label: '14d', enabled: true },
+                            { id: '30d', label: '30d', enabled: true },
+                            { id: '90d', label: '90d', enabled: false }
+                        ]
+                    }
+                ]
+            }
+        ]
+    };
+    -->
+
+    <!-- ============================================
+         COMPONENT: AppLayout
+         Angular: app-layout selector
+         ============================================ -->
+    <div class="app-layout">
+        <!-- ============================================
+             COMPONENT: WorkflowSidebar
+             Angular: app-workflow-sidebar selector
+             INPUTS: @Input() steps: WorkflowStep[]
+                     @Input() activeStep: number
+                     @Input() activityInfo: ActivityInfo
+             OUTPUTS: @Output() stepSelected: EventEmitter<WorkflowStep>
+             ============================================ -->
+        <aside class="workflow-sidebar">
+            <div class="workflow-sidebar__header">
+                <h2 class="workflow-sidebar__title" data-bind="activityInfo.name">Electronics Q4 Analysis</h2>
+                <p class="workflow-sidebar__subtitle">
+                    <span data-bind="activityInfo.client">Acme Corporation</span> • 
+                    <span data-bind="activityInfo.project">Q4 Demand Forecast</span>
+                </p>
+            </div>
+
+            <nav class="workflow-sidebar__steps" role="navigation" aria-label="Workflow steps">
+                <!-- Angular: *ngFor="let step of workflowSteps" -->
+                <!-- Step 1: Data Upload (Completed) -->
+                <div class="workflow-step workflow-step--completed ng-repeat-item" 
+                     data-click="navigateToStep"
+                     tabindex="0"
+                     role="link"
+                     aria-label="Step 1: Data Upload - Completed">
+                    <div class="workflow-step__indicator">
+                        <span class="workflow-step__checkmark">✓</span>
+                    </div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Data Upload</div>
+                        <div class="workflow-step__description">Upload and validate your data</div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Data Analysis (Completed) -->
+                <div class="workflow-step workflow-step--completed ng-repeat-item" 
+                     data-click="navigateToStep"
+                     tabindex="0"
+                     role="link"
+                     aria-label="Step 2: Data Analysis - Completed">
+                    <div class="workflow-step__indicator">
+                        <span class="workflow-step__checkmark">✓</span>
+                    </div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Data Analysis</div>
+                        <div class="workflow-step__description">Explore data patterns and quality</div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Model Selection (Completed) -->
+                <div class="workflow-step workflow-step--completed ng-repeat-item" 
+                     data-click="navigateToStep"
+                     tabindex="0"
+                     role="link"
+                     aria-label="Step 3: Model Selection - Completed">
+                    <div class="workflow-step__indicator">
+                        <span class="workflow-step__checkmark">✓</span>
+                    </div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Model Selection</div>
+                        <div class="workflow-step__description">Choose forecasting models</div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Feature Selection (Active) -->
+                <div class="workflow-step workflow-step--active ng-repeat-item" 
+                     data-click="navigateToStep"
+                     tabindex="0"
+                     role="link"
+                     aria-current="page"
+                     aria-label="Step 4: Feature Selection - Current">
+                    <div class="workflow-step__indicator">⚡</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Feature Selection</div>
+                        <div class="workflow-step__description">Configure feature engineering</div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Aggregation (Disabled) -->
+                <div class="workflow-step workflow-step--disabled ng-repeat-item" 
+                     aria-disabled="true"
+                     aria-label="Step 5: Aggregation - Not available">
+                    <div class="workflow-step__indicator">🔲</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Aggregation</div>
+                        <div class="workflow-step__description">Set aggregation levels and scope</div>
+                    </div>
+                </div>
+
+                <!-- Step 6: Date Ranges (Disabled) -->
+                <div class="workflow-step workflow-step--disabled ng-repeat-item" 
+                     aria-disabled="true"
+                     aria-label="Step 6: Date Ranges - Not available">
+                    <div class="workflow-step__indicator">📅</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Date Ranges</div>
+                        <div class="workflow-step__description">Configure training/testing periods</div>
+                    </div>
+                </div>
+
+                <!-- Step 7: Model Training (Disabled) -->
+                <div class="workflow-step workflow-step--disabled ng-repeat-item" 
+                     aria-disabled="true"
+                     aria-label="Step 7: Model Training - Not available">
+                    <div class="workflow-step__indicator">▶</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Model Training</div>
+                        <div class="workflow-step__description">Train and evaluate models</div>
+                    </div>
+                </div>
+
+                <!-- Step 8: Results (Disabled) -->
+                <div class="workflow-step workflow-step--disabled ng-repeat-item" 
+                     aria-disabled="true"
+                     aria-label="Step 8: Results - Not available">
+                    <div class="workflow-step__indicator">📊</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Results</div>
+                        <div class="workflow-step__description">View results and insights</div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="workflow-sidebar__actions">
+                <div class="workflow-sidebar__action" data-click="saveProgress">
+                    <span class="workflow-sidebar__icon">💾</span>
+                    <span>Save Progress</span>
+                </div>
+                <div class="workflow-sidebar__action" data-click="viewVersionHistory">
+                    <span class="workflow-sidebar__icon">🕐</span>
+                    <span>Version History</span>
+                </div>
+            </div>
+
+            <div class="workflow-sidebar__progress">
+                <div class="workflow-sidebar__progress-label">Progress: 3/8 steps</div>
+                <div class="workflow-sidebar__progress-bar">
+                    <div class="workflow-sidebar__progress-fill"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ============================================
+             COMPONENT: MainContent
+             ============================================ -->
+        <main class="main-content">
+            <!-- ============================================
+                 COMPONENT: FeatureSelectionComponent
+                 Angular: app-feature-selection selector
+                 INPUTS: @Input() activityId: string
+                         @Input() modelType: string
+                 OUTPUTS: @Output() featuresSelected: EventEmitter<FeatureConfiguration>
+                 SERVICE: FeatureSelectionService, FeatureEngineService
+                 ============================================ -->
+            <div class="feature-selection-container">
+                <div class="feature-selection__forecast-label">New Forecast</div>
+
+                <!-- ============================================
+                     COMPONENT: FeatureSelectionHeader
+                     Angular: app-feature-selection-header selector
+                     ============================================ -->
+                <header class="feature-selection__header">
+                    <div class="feature-selection__title-section">
+                        <h1 class="feature-selection__title">
+                            ⚡ Feature Engineering & Selection
+                        </h1>
+                        <p class="feature-selection__description">
+                            Configure features that will be used to train your forecasting models
+                        </p>
+                    </div>
+                </header>
+
+                <!-- ============================================
+                     COMPONENT: FeatureStatsSummary
+                     Angular: app-feature-stats-summary selector
+                     INPUTS: @Input() featureStats: FeatureStats
+                     ============================================ -->
+                <section class="feature-stats-summary">
+                    <div class="feature-stats-summary__item">
+                        <div class="feature-stats-summary__value" data-bind="totalFeatures">25</div>
+                        <div class="feature-stats-summary__label">Total Features</div>
+                    </div>
+                    <div class="feature-stats-summary__item">
+                        <div class="feature-stats-summary__value" data-bind="estimatedTime">~3</div>
+                        <div class="feature-stats-summary__label">Minutes Est.</div>
+                    </div>
+                    <div class="feature-stats-summary__item">
+                        <div class="feature-stats-summary__value" data-bind="recommendedFeatures">6/8</div>
+                        <div class="feature-stats-summary__label">Recommended</div>
+                    </div>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: FeatureCategories
+                     Angular: app-feature-categories selector
+                     INPUTS: @Input() categories: FeatureCategory[]
+                     OUTPUTS: @Output() featureToggled: EventEmitter<Feature>
+                     ============================================ -->
+                <div class="feature-categories">
+                    <!-- Temporal Features Section -->
+                    <section class="feature-category">
+                        <div class="feature-category__header">
+                            <span class="feature-category__icon">📅</span>
+                            <h2 class="feature-category__title">Temporal Features</h2>
+                        </div>
+                        <p class="feature-category__description">
+                            Time-based patterns and historical dependencies
+                        </p>
+
+                        <!-- Lag Features -->
+                        <div class="feature-item feature-item--enabled" data-feature="lag">
+                            <div class="feature-item__header">
+                                <div class="feature-item__checkbox-group">
+                                    <input type="checkbox" 
+                                           class="feature-item__checkbox" 
+                                           id="lag-features"
+                                           checked
+                                           data-bind="features.lag.enabled"
+                                           data-click="toggleFeature">
+                                    <label for="lag-features" class="feature-item__name">Lag Features</label>
+                                </div>
+                                <span class="feature-item__badge feature-item__badge--high">High Impact</span>
+                            </div>
+                            <div class="feature-item__description">
+                                Lag Periods (days)
+                            </div>
+                            <div class="feature-item__options">
+                                <!-- Angular: *ngFor="let option of lagOptions" -->
+                                <div class="feature-option ng-repeat-item">
+                                    <input type="checkbox" 
+                                           class="feature-option__checkbox" 
+                                           id="lag-1d"
+                                           checked
+                                           data-bind="features.lag.options.1d">
+                                    <label for="lag-1d" class="feature-option__label">1d</label>
+                                </div>
+                                <div class="feature-option ng-repeat-item">
+                                    <input type="checkbox" 
+                                           class="feature-option__checkbox" 
+                                           id="lag-7d"
+                                           checked
+                                           data-bind="features.lag.options.7d">
+                                    <label for="lag-7d" class="feature-option__label">7d</label>
+                                </div>
+                                <div class="feature-option ng-repeat-item">
+                                    <input type="checkbox" 
+                                           class="feature-option__checkbox" 
+                                           id="lag-14d"
+                                           checked
+                                           data-bind="features.lag.options.14d">
+                                    <label for="lag-14d" class="feature-option__label">14d</label>
+                                </div>
+                                <div class="feature-option ng-repeat-item">
+                                    <input type="checkbox" 
+                                           class="feature-option__checkbox" 
+                                           id="lag-30d"
+                                           checked
+                                           data-bind="features.lag.options.30d">
+                                    <label for="lag-30d" class="feature-option__label">30d</label>
+                                </div>
+                                <div class="feature-option feature-option--disabled ng-repeat-item">
+                                    <input type="checkbox" 
+                                           class="feature-option__checkbox" 
+                                           id="lag-90d"
+                                           data-bind="features.lag.options.90d">
+                                    <label for="lag-90d" class="feature-option__label">90d</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rolling Statistics -->
+                        <div class="feature-item feature-item--enabled" data-feature="rolling">
+                            <div class="feature-item__header">
+                                <div class="feature-item__checkbox-group">
+                                    <input type="checkbox" 
+                                           class="feature-item__checkbox" 
+                                           id="rolling-stats"
+                                           checked
+                                           data-bind="features.rolling.enabled"
+                                           data-click="toggleFeature">
+                                    <label for="rolling-stats" class="feature-item__name">Rolling Statistics</label>
+                                </div>
+                                <span class="feature-item__badge feature-item__badge--high">High Impact</span>
+                            </div>
+                            <div class="feature-item__description">
+                                Rolling Windows (days)
+                            </div>
+                            <div class="feature-item__options">
+                                <div class="feature-option feature-option--disabled ng-repeat-item">
+                                    <input type="checkbox" 
+                                           class="feature-option__checkbox" 
+                                           id="rolling-3d"
+                                           data-bind="features.rolling.options.3d">
+                                    <label for="rolling-3d" class="feature-option__label">3d</label>
+                                </div>
+                                <div class="feature-option ng-repeat-item">
+                                    <input type="checkbox" 
+                                           class="feature-option__checkbox" 
+                                           id="rolling-7d"
+                                           checked
+                                           data-bind="features.rolling.options.7d">
+                                    <label for="rolling-7d" class="feature-option__label">7d</label>
+                                </div>
+                                <div class="feature-option ng-repeat-item">
+                                    <input type="checkbox" 
+                                           class="feature-option__checkbox" 
+                                           id="rolling-14d"
+                                           checked
+                                           data-bind="features.rolling.options.14d">
+                                    <label for="rolling-14d" class="feature-option__label">14d</label>
+                                </div>
+                                <div class="feature-option ng-repeat-item">
+                                    <input type="checkbox" 
+                                           class="feature-option__checkbox" 
+                                           id="rolling-30d"
+                                           checked
+                                           data-bind="features.rolling.options.30d">
+                                    <label for="rolling-30d" class="feature-option__label">30d</label>
+                                </div>
+                                <div class="feature-option feature-option--disabled ng-repeat-item">
+                                    <input type="checkbox" 
+                                           class="feature-option__checkbox" 
+                                           id="rolling-90d"
+                                           data-bind="features.rolling.options.90d">
+                                    <label for="rolling-90d" class="feature-option__label">90d</label>
+                                </div>
+                            </div>
+                            <p class="feature-item__description" style="margin-top: 8px; font-size: 12px;">
+                                Includes mean, std dev, min/max for each window
+                            </p>
+                        </div>
+                    </section>
+
+                    <!-- External Features Section -->
+                    <section class="feature-category">
+                        <div class="feature-category__header">
+                            <span class="feature-category__icon">💲</span>
+                            <h2 class="feature-category__title">External Features</h2>
+                        </div>
+                        <p class="feature-category__description">
+                            Business and environmental factors
+                        </p>
+
+                        <!-- Price Features -->
+                        <div class="feature-item feature-item--enabled" data-feature="price">
+                            <div class="feature-item__header">
+                                <div class="feature-item__checkbox-group">
+                                    <input type="checkbox" 
+                                           class="feature-item__checkbox" 
+                                           id="price-features"
+                                           checked
+                                           data-bind="features.price.enabled"
+                                           data-click="toggleFeature">
+                                    <label for="price-features" class="feature-item__name">Price Features</label>
+                                </div>
+                                <span class="feature-item__badge feature-item__badge--high">High Impact</span>
+                            </div>
+                            <p class="feature-item__description">
+                                Price, discounts, price elasticity, price changes
+                            </p>
+                        </div>
+
+                        <!-- Promotion Features -->
+                        <div class="feature-item feature-item--enabled" data-feature="promotion">
+                            <div class="feature-item__header">
+                                <div class="feature-item__checkbox-group">
+                                    <input type="checkbox" 
+                                           class="feature-item__checkbox" 
+                                           id="promotion-features"
+                                           checked
+                                           data-bind="features.promotion.enabled"
+                                           data-click="toggleFeature">
+                                    <label for="promotion-features" class="feature-item__name">Promotion Features</label>
+                                </div>
+                                <span class="feature-item__badge feature-item__badge--medium">Medium Impact</span>
+                            </div>
+                            <p class="feature-item__description">
+                                Promotion status, type, intensity, duration
+                            </p>
+                        </div>
+
+                        <!-- Holiday Features -->
+                        <div class="feature-item feature-item--enabled" data-feature="holiday">
+                            <div class="feature-item__header">
+                                <div class="feature-item__checkbox-group">
+                                    <input type="checkbox" 
+                                           class="feature-item__checkbox" 
+                                           id="holiday-features"
+                                           checked
+                                           data-bind="features.holiday.enabled"
+                                           data-click="toggleFeature">
+                                    <label for="holiday-features" class="feature-item__name">Holiday Features</label>
+                                </div>
+                                <span class="feature-item__badge feature-item__badge--high">High Impact</span>
+                            </div>
+                            <p class="feature-item__description">
+                                Holiday indicators, days to/from holidays
+                            </p>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Category Features Section -->
+                <section class="feature-category" style="margin-bottom: var(--spacing-xl);">
+                    <div class="feature-category__header">
+                        <span class="feature-category__icon">🏷️</span>
+                        <h2 class="feature-category__title">Category Features</h2>
+                    </div>
+                    <p class="feature-category__description">
+                        Product hierarchy and category effects
+                    </p>
+
+                    <div class="feature-item feature-item--enabled" data-feature="category">
+                        <div class="feature-item__header">
+                            <div class="feature-item__checkbox-group">
+                                <input type="checkbox" 
+                                       class="feature-item__checkbox" 
+                                       id="category-encoding"
+                                       checked
+                                       data-bind="features.category.enabled"
+                                       data-click="toggleFeature">
+                                <label for="category-encoding" class="feature-item__name">Category Encoding</label>
+                            </div>
+                            <span class="feature-item__badge feature-item__badge--high">High Impact</span>
+                        </div>
+                        <p class="feature-item__description">
+                            Product category, subcategory, brand encodings
+                        </p>
+                    </div>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: FeatureRecommendations
+                     Angular: app-feature-recommendations selector
+                     INPUTS: @Input() recommendations: FeatureRecommendation[]
+                     ============================================ -->
+                <section class="feature-recommendations" role="region" aria-label="Feature Recommendations">
+                    <div class="feature-recommendations__header">
+                        <span class="feature-recommendations__icon">🎯</span>
+                        <h2 class="feature-recommendations__title">Feature Recommendations</h2>
+                    </div>
+                    <p class="feature-recommendations__subtitle">
+                        AI-powered suggestions based on your data characteristics
+                    </p>
+
+                    <div class="feature-recommendations__grid">
+                        <!-- Angular: *ngFor="let recommendation of featureRecommendations" -->
+                        <div class="recommendation-item recommendation-item--high ng-repeat-item">
+                            <div class="recommendation-item__info">
+                                <span class="recommendation-item__indicator"></span>
+                                <span class="recommendation-item__name">
+                                    Lag 7 days
+                                    <span class="recommendation-item__category">temporal</span>
+                                </span>
+                            </div>
+                            <div class="recommendation-item__importance">
+                                <span class="recommendation-item__percentage">85%</span>
+                                <span class="recommendation-item__label">importance</span>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-item recommendation-item--high ng-repeat-item">
+                            <div class="recommendation-item__info">
+                                <span class="recommendation-item__indicator"></span>
+                                <span class="recommendation-item__name">
+                                    Price
+                                    <span class="recommendation-item__category">external</span>
+                                </span>
+                            </div>
+                            <div class="recommendation-item__importance">
+                                <span class="recommendation-item__percentage">78%</span>
+                                <span class="recommendation-item__label">importance</span>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-item recommendation-item--high ng-repeat-item">
+                            <div class="recommendation-item__info">
+                                <span class="recommendation-item__indicator"></span>
+                                <span class="recommendation-item__name">
+                                    Rolling mean 14d
+                                    <span class="recommendation-item__category">temporal</span>
+                                </span>
+                            </div>
+                            <div class="recommendation-item__importance">
+                                <span class="recommendation-item__percentage">72%</span>
+                                <span class="recommendation-item__label">importance</span>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-item recommendation-item--high ng-repeat-item">
+                            <div class="recommendation-item__info">
+                                <span class="recommendation-item__indicator"></span>
+                                <span class="recommendation-item__name">
+                                    Category encoding
+                                    <span class="recommendation-item__category">category</span>
+                                </span>
+                            </div>
+                            <div class="recommendation-item__importance">
+                                <span class="recommendation-item__percentage">65%</span>
+                                <span class="recommendation-item__label">importance</span>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-item recommendation-item--high ng-repeat-item">
+                            <div class="recommendation-item__info">
+                                <span class="recommendation-item__indicator"></span>
+                                <span class="recommendation-item__name">
+                                    Holiday effect
+                                    <span class="recommendation-item__category">external</span>
+                                </span>
+                            </div>
+                            <div class="recommendation-item__importance">
+                                <span class="recommendation-item__percentage">61%</span>
+                                <span class="recommendation-item__label">importance</span>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-item recommendation-item--high ng-repeat-item">
+                            <div class="recommendation-item__info">
+                                <span class="recommendation-item__indicator"></span>
+                                <span class="recommendation-item__name">
+                                    Promotion active
+                                    <span class="recommendation-item__category">external</span>
+                                </span>
+                            </div>
+                            <div class="recommendation-item__importance">
+                                <span class="recommendation-item__percentage">58%</span>
+                                <span class="recommendation-item__label">importance</span>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-item recommendation-item--medium ng-repeat-item">
+                            <div class="recommendation-item__info">
+                                <span class="recommendation-item__indicator" style="background: #9CA3AF;"></span>
+                                <span class="recommendation-item__name">
+                                    Rolling std 30d
+                                    <span class="recommendation-item__category">temporal</span>
+                                </span>
+                            </div>
+                            <div class="recommendation-item__importance">
+                                <span class="recommendation-item__percentage">52%</span>
+                                <span class="recommendation-item__label">importance</span>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-item recommendation-item--medium ng-repeat-item">
+                            <div class="recommendation-item__info">
+                                <span class="recommendation-item__indicator" style="background: #9CA3AF;"></span>
+                                <span class="recommendation-item__name">
+                                    Lag 1 day
+                                    <span class="recommendation-item__category">temporal</span>
+                                </span>
+                            </div>
+                            <div class="recommendation-item__importance">
+                                <span class="recommendation-item__percentage">48%</span>
+                                <span class="recommendation-item__label">importance</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: FeatureConfigurationSummary
+                     Angular: app-feature-configuration-summary selector
+                     INPUTS: @Input() configuration: FeatureConfiguration
+                     ============================================ -->
+                <section class="feature-summary">
+                    <h2 class="feature-summary__title">Feature Configuration Summary</h2>
+                    <p class="feature-summary__subtitle">Review your feature engineering setup</p>
+
+                    <div class="feature-summary__grid">
+                        <div class="feature-summary__group">
+                            <h3 class="feature-summary__group-title">Temporal Features</h3>
+                            <div class="feature-summary__item">
+                                <span class="feature-summary__item-label">Lag periods:</span>
+                                <span class="feature-summary__item-value" data-bind="temporalFeatures.lagPeriods">4</span>
+                            </div>
+                            <div class="feature-summary__item">
+                                <span class="feature-summary__item-label">Rolling windows:</span>
+                                <span class="feature-summary__item-value" data-bind="temporalFeatures.rollingWindows">3</span>
+                            </div>
+                        </div>
+
+                        <div class="feature-summary__group">
+                            <h3 class="feature-summary__group-title">External Features</h3>
+                            <div class="feature-summary__item">
+                                <span class="feature-summary__item-label">Price features:</span>
+                                <span class="feature-summary__item-value" data-bind="externalFeatures.price">Yes</span>
+                            </div>
+                            <div class="feature-summary__item">
+                                <span class="feature-summary__item-label">Promotions:</span>
+                                <span class="feature-summary__item-value" data-bind="externalFeatures.promotions">Yes</span>
+                            </div>
+                            <div class="feature-summary__item">
+                                <span class="feature-summary__item-label">Holidays:</span>
+                                <span class="feature-summary__item-value" data-bind="externalFeatures.holidays">Yes</span>
+                            </div>
+                        </div>
+
+                        <div class="feature-summary__group">
+                            <h3 class="feature-summary__group-title">Category Features</h3>
+                            <div class="feature-summary__item">
+                                <span class="feature-summary__item-label">Category encoding:</span>
+                                <span class="feature-summary__item-value" data-bind="categoryFeatures.encoding">Yes</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: FeatureEngineering Impact
+                     Angular: app-feature-impact selector
+                     ============================================ -->
+                <section class="feature-impact">
+                    <span class="feature-impact__icon">ℹ️</span>
+                    <div class="feature-impact__content">
+                        <h3 class="feature-impact__title">Feature Engineering Impact</h3>
+                        <p class="feature-impact__description">
+                            Selected features will be automatically generated from your raw data. Higher impact features typically improve model accuracy but may increase training time.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: CompletionMessage
+                     Angular: app-completion-message selector
+                     ============================================ -->
+                <section class="completion-message ng-condition" data-show="featureConfigurationComplete">
+                    <span class="completion-message__icon">✓</span>
+                    <span class="completion-message__text">
+                        Feature configuration complete. Ready to proceed to the next step.
+                    </span>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: ActionBar
+                     Angular: app-action-bar selector
+                     OUTPUTS: @Output() nextStep: EventEmitter<void>
+                              @Output() previousStep: EventEmitter<void>
+                     ============================================ -->
+                <div class="action-bar">
+                    <button type="button" 
+                            class="action-bar__button action-bar__button--secondary"
+                            data-click="goToPreviousStep"
+                            aria-label="Go back to Model Selection">
+                        <span class="action-bar__button-icon">←</span>
+                        Back
+                    </button>
+                    <button type="button" 
+                            class="action-bar__button action-bar__button--primary"
+                            data-click="continueToAggregation"
+                            data-validate="featuresSelected"
+                            aria-label="Continue to Aggregation">
+                        Continue to Aggregation
+                        <span class="action-bar__button-icon">→</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Skip link for keyboard navigation -->
+    <a href="#main" class="visually-hidden">Skip to main content</a>
+</body>
+</html>

@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 7: Model Training - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #030213;
+            --color-secondary: #4A90E2;
+            --color-background: #ffffff;
+            --color-border: #e2e8f0;
+            --color-muted: #64748b;
+            --color-muted-foreground: #64748b;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            --color-blue-50: #eff6ff;
+            --color-blue-500: #3b82f6;
+            --color-green-50: #f0fdf4;
+            --color-green-500: #22c55e;
+            --color-red-50: #fef2f2;
+            --color-red-500: #ef4444;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --radius: 0.5rem;
+            --chart-1: #3b82f6;
+            --chart-2: #10b981;
+            --chart-3: #8b5cf6;
+        }
+
+        /* ============================================
+           GLOBAL RESET AND BASE STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-primary);
+            background-color: var(--color-background);
+        }
+
+        /* ============================================
+           COMPONENT: ModelTrainingStep
+           Future: model-training-step.component.css
+           ============================================ */
+        .model-training-step {
+            padding: var(--spacing-lg);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .model-training-step__header {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .model-training-step__title {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .model-training-step__description {
+            color: var(--color-muted-foreground);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        /* ============================================
+           COMPONENT: TrainingStatusHeader
+           Future: training-status-header.component.css
+           ============================================ */
+        .training-status-header {
+            background: #f8fafc;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .training-status-header--running {
+            border-color: var(--color-blue-500);
+            background: var(--color-blue-50);
+        }
+
+        .training-status-header--completed {
+            border-color: var(--color-green-500);
+            background: var(--color-green-50);
+        }
+
+        .training-status-header--failed {
+            border-color: var(--color-red-500);
+            background: var(--color-red-50);
+        }
+
+        .training-status-header__content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: var(--spacing-lg);
+        }
+
+        .training-status-header__info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .training-status-header__icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e2e8f0;
+        }
+
+        .training-status-header__icon--running {
+            background: #dbeafe;
+        }
+
+        .training-status-header__icon--completed {
+            background: #dcfce7;
+        }
+
+        .training-status-header__icon--failed {
+            background: #fee2e2;
+        }
+
+        .training-status-header__spinner {
+            width: 32px;
+            height: 32px;
+            border: 4px solid var(--color-blue-500);
+            border-top: 4px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .training-status-header__details h2 {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .training-status-header__badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-left: var(--spacing-sm);
+        }
+
+        .training-status-header__badge--running {
+            background: var(--color-blue-500);
+            color: white;
+        }
+
+        .training-status-header__badge--completed {
+            background: var(--color-green-500);
+            color: white;
+        }
+
+        .training-status-header__badge--idle {
+            background: #e2e8f0;
+            color: var(--color-muted);
+        }
+
+        .training-status-header__controls {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+
+        .training-status-header__summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-lg);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .training-status-header__metric {
+            text-align: left;
+        }
+
+        .training-status-header__metric-label {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+        }
+
+        .training-status-header__metric-value {
+            font-weight: 500;
+            font-size: 18px;
+            margin-top: 4px;
+        }
+
+        .training-status-header__metric-subtitle {
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           COMPONENT: TrainingProgress
+           Future: training-progress.component.css
+           ============================================ */
+        .training-progress {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .training-progress__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .training-progress__title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .training-progress__status {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .training-progress__status--idle {
+            background: #e2e8f0;
+            color: var(--color-muted);
+        }
+
+        .training-progress__status--completed {
+            background: var(--color-green-500);
+            color: white;
+        }
+
+        .training-progress__bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .training-progress__fill {
+            height: 100%;
+            background: var(--color-primary);
+            transition: width 0.3s ease;
+        }
+
+        .training-progress__fill--completed {
+            background: var(--color-green-500);
+        }
+
+        /* ============================================
+           COMPONENT: TrainingTabs - TABBED INTERFACE
+           Future: training-tabs.component.css
+           ============================================ */
+        .training-tabs {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .training-tabs__header {
+            display: flex;
+            border-bottom: 1px solid var(--color-border);
+            background: #f8fafc;
+        }
+
+        .training-tabs__tab {
+            flex: 1;
+            padding: var(--spacing-md);
+            text-align: center;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--color-muted-foreground);
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .training-tabs__tab:hover {
+            background: #e2e8f0;
+            color: var(--color-primary);
+        }
+
+        .training-tabs__tab--active {
+            background: white;
+            color: var(--color-primary);
+            border-bottom: 2px solid var(--color-primary);
+        }
+
+        .training-tabs__content {
+            min-height: 400px;
+            padding: var(--spacing-lg);
+        }
+
+        .training-tabs__panel {
+            display: none;
+        }
+
+        .training-tabs__panel--active {
+            display: block;
+        }
+
+        /* ============================================
+           COMPONENT: ModelStatus
+           Future: model-status.component.css
+           ============================================ */
+        .model-status {
+            padding: var(--spacing-lg);
+        }
+
+        .model-status__model {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .model-status__model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .model-status__model-name {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .model-status__accuracy-badge {
+            background: var(--color-primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .model-status__metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .model-status__metric {
+            text-align: left;
+        }
+
+        .model-status__metric-label {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+        }
+
+        .model-status__metric-value {
+            font-weight: 500;
+            font-size: 16px;
+            margin-top: 4px;
+        }
+
+        .model-status__progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: var(--spacing-md) 0;
+        }
+
+        .model-status__progress-fill {
+            height: 100%;
+            background: var(--color-success);
+            transition: width 0.3s ease;
+        }
+
+        .model-status__execution-time {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .model-status__completion {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: var(--radius);
+        }
+
+        .model-status__completion-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--color-success);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .model-status__completion-text {
+            flex: 1;
+        }
+
+        .model-status__completion-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .model-status__completion-description {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+        }
+
+        .model-status__empty {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           COMPONENT: ExecutionLogs - LOG OUTPUT INTERFACE
+           Future: execution-logs.component.css
+           ============================================ */
+        .execution-logs {
+            padding: var(--spacing-lg);
+        }
+
+        .execution-logs__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .execution-logs__title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .execution-logs__controls {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .execution-logs__container {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: var(--radius);
+            padding: var(--spacing-md);
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            height: 300px;
+            overflow-y: auto;
+        }
+
+        .execution-logs__entry {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: 4px;
+            align-items: flex-start;
+        }
+
+        .execution-logs__timestamp {
+            color: #64748b;
+            white-space: nowrap;
+            min-width: 80px;
+            font-size: 12px;
+        }
+
+        .execution-logs__level {
+            min-width: 16px;
+            font-size: 12px;
+        }
+
+        .execution-logs__level--info {
+            color: #3b82f6;
+        }
+
+        .execution-logs__level--success {
+            color: #10b981;
+        }
+
+        .execution-logs__level--warning {
+            color: #f59e0b;
+        }
+
+        .execution-logs__level--error {
+            color: #ef4444;
+        }
+
+        .execution-logs__message {
+            flex: 1;
+            color: #e2e8f0;
+        }
+
+        .execution-logs__empty {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           COMPONENT: QuickResults
+           Future: quick-results.component.css
+           ============================================ */
+        .quick-results {
+            padding: var(--spacing-lg);
+        }
+
+        .quick-results__empty {
+            text-align: center;
+            padding: var(--spacing-xl) * 2;
+            color: var(--color-muted-foreground);
+        }
+
+        .quick-results__empty-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto var(--spacing-md);
+            color: #94a3b8;
+        }
+
+        .quick-results__empty-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .quick-results__empty-description {
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           COMPONENT: Button
+           Future: button.component.css
+           ============================================ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            padding: 8px 16px;
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn--primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn--primary:hover:not(:disabled) {
+            background: #1e293b;
+        }
+
+        .btn--secondary {
+            background: #f1f5f9;
+            color: var(--color-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn--secondary:hover:not(:disabled) {
+            background: #e2e8f0;
+        }
+
+        .btn--outline {
+            background: white;
+            color: var(--color-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn--outline:hover:not(:disabled) {
+            background: #f8fafc;
+        }
+
+        .btn--sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        /* ============================================
+           COMPONENT: ActionButtons
+           Future: action-buttons.component.css
+           ============================================ */
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-md);
+            padding-top: var(--spacing-xl);
+            border-top: 1px solid var(--color-border);
+            margin-top: var(--spacing-xl);
+        }
+
+        /* Mobile-first responsive design */
+        @media (max-width: 768px) {
+            .model-training-step {
+                padding: var(--spacing-md);
+            }
+
+            .training-status-header__content {
+                flex-direction: column;
+                gap: var(--spacing-md);
+            }
+
+            .training-status-header__summary {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-md);
+            }
+
+            .training-tabs__header {
+                flex-direction: column;
+            }
+
+            .training-tabs__tab {
+                border-bottom: 1px solid var(--color-border);
+            }
+
+            .training-tabs__tab:last-child {
+                border-bottom: none;
+            }
+
+            .model-status__metrics {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-md);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .model-training-step {
+                padding: var(--spacing-xl);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         COMPONENT: ModelTrainingStep
+         Angular: app-model-training-step selector
+         INPUTS: @Input() activityData: ActivityData
+         OUTPUTS: @Output() trainingStart: EventEmitter<void>
+         OUTPUTS: @Output() trainingStop: EventEmitter<void>
+         OUTPUTS: @Output() proceedToResults: EventEmitter<void>
+         SERVICE: ModelTrainingService, WebSocketService
+         ============================================ -->
+    <div class="model-training-step">
+        <!-- ============================================
+             COMPONENT: TrainingStepHeader
+             Angular: app-training-step-header selector
+             ============================================ -->
+        <header class="model-training-step__header">
+            <div class="model-training-step__title-wrapper">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <h1 class="model-training-step__title">Model Execution & Training</h1>
+            </div>
+            <p class="model-training-step__description">Execute selected model and evaluate its performance</p>
+        </header>
+
+        <!-- ============================================
+             COMPONENT: TrainingStatusHeader - TRAINING EXECUTION DASHBOARD
+             Angular: app-training-status-header selector
+             INPUTS: @Input() trainingStatus: TrainingStatus
+             INPUTS: @Input() progressData: ProgressData
+             OUTPUTS: @Output() startTraining: EventEmitter<void>
+             OUTPUTS: @Output() stopTraining: EventEmitter<void>
+             SERVICE: TrainingExecutionService
+             ============================================ -->
+        <div class="training-status-header training-status-header--completed" data-training-status="completed">
+            <div class="training-status-header__content">
+                <div class="training-status-header__info">
+                    <div class="training-status-header__icon training-status-header__icon--completed">
+                        <!-- Completed Icon -->
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+                            <path d="m9 12 2 2 4-4"/>
+                            <circle cx="12" cy="12" r="9"/>
+                        </svg>
+                    </div>
+                    <div class="training-status-header__details">
+                        <h2>
+                            Model Training 
+                            <span class="training-status-header__badge training-status-header__badge--completed">Completed</span>
+                        </h2>
+                        <p>Training execution completed successfully with validation results</p>
+                    </div>
+                </div>
+                
+                <div class="training-status-header__controls">
+                    <button class="btn btn--outline btn--sm" data-click="rerunTraining">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9,22 9,12 15,12 15,22"/>
+                        </svg>
+                        Re-run
+                    </button>
+                </div>
+            </div>
+
+            <!-- Training Summary Metrics -->
+            <div class="training-status-header__summary ng-condition" data-show="trainingStatus !== 'idle'">
+                <div class="training-status-header__metric">
+                    <div class="training-status-header__metric-label">Models</div>
+                    <div class="training-status-header__metric-value">1</div>
+                    <div class="training-status-header__metric-subtitle">Executed</div>
+                </div>
+                <div class="training-status-header__metric">
+                    <div class="training-status-header__metric-label">Progress</div>
+                    <div class="training-status-header__metric-value">100%</div>
+                    <div class="training-status-header__metric-subtitle">Complete</div>
+                </div>
+                <div class="training-status-header__metric">
+                    <div class="training-status-header__metric-label">Completed</div>
+                    <div class="training-status-header__metric-value">1</div>
+                    <div class="training-status-header__metric-subtitle">Models</div>
+                </div>
+                <div class="training-status-header__metric">
+                    <div class="training-status-header__metric-label">Duration</div>
+                    <div class="training-status-header__metric-value">8.5s</div>
+                    <div class="training-status-header__metric-subtitle">Total time</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================
+             COMPONENT: TrainingProgress - PROGRESS TRACKING INTERFACE
+             Angular: app-training-progress selector
+             INPUTS: @Input() overallProgress: number
+             INPUTS: @Input() trainingStatus: string
+             ============================================ -->
+        <div class="training-progress">
+            <div class="training-progress__header">
+                <h3 class="training-progress__title">Overall Progress</h3>
+                <span class="training-progress__status training-progress__status--completed">Completed</span>
+            </div>
+            <div class="training-progress__bar">
+                <div class="training-progress__fill training-progress__fill--completed" 
+                     style="width: 100%" data-bind="overallProgress"></div>
+            </div>
+        </div>
+
+        <!-- ============================================
+             COMPONENT: TrainingTabs - TABBED INTERFACE with EXACT 3-TAB STRUCTURE
+             Angular: app-training-tabs selector
+             TAB SEQUENCE: Model Status → Execution Logs → Quick Results
+             INPUTS: @Input() activeTab: string
+             OUTPUTS: @Output() tabChange: EventEmitter<string>
+             SERVICE: TrainingMonitoringService
+             ============================================ -->
+        <div class="training-tabs">
+            <div class="training-tabs__header">
+                <button class="training-tabs__tab training-tabs__tab--active" 
+                        data-click="switchTab" data-tab="model-status">
+                    Model Status
+                </button>
+                <button class="training-tabs__tab" 
+                        data-click="switchTab" data-tab="execution-logs">
+                    Execution Logs
+                </button>
+                <button class="training-tabs__tab" 
+                        data-click="switchTab" data-tab="quick-results">
+                    Quick Results
+                </button>
+            </div>
+
+            <div class="training-tabs__content">
+                <!-- ============================================
+                     TAB PANEL: Model Status - MODEL STATUS INTERFACE
+                     Angular: app-model-status selector
+                     INPUTS: @Input() modelResults: ModelResult[]
+                     SERVICE: ModelResultsService
+                     ============================================ -->
+                <div class="training-tabs__panel training-tabs__panel--active" data-tab-panel="model-status">
+                    <div class="model-status">
+                        <!-- Model Execution Results -->
+                        <div class="model-status__model ng-repeat-item" data-repeat="modelResults">
+                            <div class="model-status__model-header">
+                                <h4 class="model-status__model-name">XGBoost</h4>
+                                <span class="model-status__accuracy-badge">88.1% accuracy</span>
+                            </div>
+                            
+                            <!-- Performance Metrics Grid -->
+                            <div class="model-status__metrics">
+                                <div class="model-status__metric">
+                                    <div class="model-status__metric-label">MAE:</div>
+                                    <div class="model-status__metric-value">10.09</div>
+                                </div>
+                                <div class="model-status__metric">
+                                    <div class="model-status__metric-label">RMSE:</div>
+                                    <div class="model-status__metric-value">15.97</div>
+                                </div>
+                                <div class="model-status__metric">
+                                    <div class="model-status__metric-label">MAPE:</div>
+                                    <div class="model-status__metric-value">11.2%</div>
+                                </div>
+                                <div class="model-status__metric">
+                                    <div class="model-status__metric-label">R²:</div>
+                                    <div class="model-status__metric-value">0.920</div>
+                                </div>
+                            </div>
+
+                            <!-- Training Progress Bar -->
+                            <div class="model-status__progress-bar">
+                                <div class="model-status__progress-fill" style="width: 100%"></div>
+                            </div>
+
+                            <div class="model-status__execution-time">
+                                Execution time: 8.5s
+                            </div>
+                        </div>
+
+                        <!-- Training Completion Status -->
+                        <div class="model-status__completion">
+                            <div class="model-status__completion-icon">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m9 12 2 2 4-4"/>
+                                </svg>
+                            </div>
+                            <div class="model-status__completion-text">
+                                <div class="model-status__completion-title">Execution completed successfully!</div>
+                                <div class="model-status__completion-description">
+                                    Model has finished training. Best performing model: XGBoost with 88.1% accuracy.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================
+                     TAB PANEL: Execution Logs - LOG OUTPUT INTERFACE
+                     Angular: app-execution-logs selector
+                     INPUTS: @Input() trainingLogs: TrainingLog[]
+                     OUTPUTS: @Output() exportLogs: EventEmitter<void>
+                     SERVICE: LogStreamingService
+                     ============================================ -->
+                <div class="training-tabs__panel" data-tab-panel="execution-logs">
+                    <div class="execution-logs">
+                        <div class="execution-logs__header">
+                            <h4 class="execution-logs__title">Execution Logs</h4>
+                            <div class="execution-logs__controls">
+                                <button class="btn btn--outline btn--sm" data-click="exportLogs">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7,10 12,15 17,10"/>
+                                        <line x1="12" x2="12" y1="15" y2="3"/>
+                                    </svg>
+                                    Export
+                                </button>
+                                <button class="btn btn--outline btn--sm" data-click="clearLogs">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="m3 6 3 0"/>
+                                        <path d="m19 6-3 0"/>
+                                        <path d="m8 6 0-1c0-1 0-1 1-1l6 0c1 0 1 0 1 1l0 1"/>
+                                        <rect x="5" y="6" width="14" height="14" rx="1"/>
+                                        <line x1="10" x2="10" y1="11" y2="17"/>
+                                        <line x1="14" x2="14" y1="11" y2="17"/>
+                                    </svg>
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+
+                        <p class="execution-logs__subtitle">Real-time execution progress and status updates</p>
+
+                        <!-- Log Container -->
+                        <div class="execution-logs__container">
+                            <!-- Sample Log Entries -->
+                            <div class="execution-logs__entry ng-repeat-item" data-repeat="trainingLogs">
+                                <span class="execution-logs__timestamp">12:42:29 PM</span>
+                                <span class="execution-logs__level execution-logs__level--info">ℹ</span>
+                                <span class="execution-logs__message">Starting model execution pipeline</span>
+                            </div>
+                            <div class="execution-logs__entry ng-repeat-item">
+                                <span class="execution-logs__timestamp">12:42:29 PM</span>
+                                <span class="execution-logs__level execution-logs__level--info">ℹ</span>
+                                <span class="execution-logs__message">Starting XGBoost model execution</span>
+                            </div>
+                            <div class="execution-logs__entry ng-repeat-item">
+                                <span class="execution-logs__timestamp">12:42:33 PM</span>
+                                <span class="execution-logs__level execution-logs__level--success">✓</span>
+                                <span class="execution-logs__message">XGBoost completed with 88.1% accuracy</span>
+                            </div>
+                            <div class="execution-logs__entry ng-repeat-item">
+                                <span class="execution-logs__timestamp">12:42:33 PM</span>
+                                <span class="execution-logs__level execution-logs__level--success">✓</span>
+                                <span class="execution-logs__message">All models completed successfully</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================
+                     TAB PANEL: Quick Results - RESULTS OVERVIEW INTERFACE
+                     Angular: app-quick-results selector
+                     INPUTS: @Input() hasResults: boolean
+                     INPUTS: @Input() quickResults: QuickResultsData
+                     ============================================ -->
+                <div class="training-tabs__panel" data-tab-panel="quick-results">
+                    <div class="quick-results">
+                        <!-- Empty State when no results -->
+                        <div class="quick-results__empty ng-condition" data-show="!hasResults">
+                            <div class="quick-results__empty-icon">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+                                </svg>
+                            </div>
+                            <h4 class="quick-results__empty-title">No Results Yet</h4>
+                            <p class="quick-results__empty-description">Start model execution to see results here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================
+             COMPONENT: ActionButtons
+             Angular: app-action-buttons selector
+             OUTPUTS: @Output() continueToResults: EventEmitter<void>
+             ============================================ -->
+        <div class="action-buttons">
+            <button class="btn btn--primary" data-click="continueToResults" data-navigate="results">
+                Continue to Results
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m9 18 6-6-6-6"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================
+         COMPONENT DATA STRUCTURES AND INTERFACES
+         ============================================ -->
+    <!--
+    TypeScript Interfaces:
+    ======================
+    interface TrainingStatus {
+        status: 'idle' | 'initializing' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+        startTime?: string;
+        duration: number;
+        estimatedRemainingTime?: string;
+        overallProgress: number;
+        jobId?: string;
+    }
+
+    interface TrainingPhase {
+        id: string;
+        name: string;
+        description: string;
+        status: 'pending' | 'running' | 'completed' | 'error';
+        progress: number;
+        duration?: number;
+        estimatedTime?: string;
+        currentStep?: string;
+        error?: string;
+        startTime?: string;
+        endTime?: string;
+    }
+
+    interface ModelResult {
+        modelName: string;
+        accuracy: number;
+        metrics: {
+            mae: number;
+            rmse: number;
+            mape: number;
+            r2: number;
+        };
+        executionTime: number;
+        status: 'completed' | 'failed' | 'running';
+        progress: number;
+    }
+
+    interface PerformanceMetrics {
+        current: {
+            trainingLoss: number;
+            validationLoss: number;
+            accuracy: number;
+            mae: number;
+            rmse: number;
+        };
+        history: Array<{
+            iteration: number;
+            timestamp: string;
+            trainingLoss: number;
+            validationLoss: number;
+            accuracy: number;
+        }>;
+        bestPerformance: {
+            iteration: number;
+            validationLoss: number;
+            accuracy: number;
+            timestamp: string;
+        };
+    }
+
+    interface ResourceUsage {
+        cpu: number;
+        memory: number;
+        memoryUsed: string;
+        memoryTotal: string;
+        diskIO: string;
+        networkIO: string;
+        gpu?: number;
+        history: Array<{
+            timestamp: string;
+            cpu: number;
+            memory: number;
+            diskIO: number;
+        }>;
+    }
+
+    interface TrainingLog {
+        timestamp: string;
+        level: 'info' | 'warning' | 'error' | 'debug' | 'success';
+        message: string;
+        component: string;
+    }
+
+    interface ValidationResults {
+        method: string;
+        folds: number;
+        completedFolds: number;
+        foldResults: Array<{
+            foldId: number;
+            status: 'pending' | 'running' | 'completed';
+            trainingSize: number;
+            validationSize: number;
+            metrics?: {
+                mae: number;
+                rmse: number;
+                mape: number;
+            };
+            duration?: number;
+            progress?: number;
+            estimatedDuration?: number;
+        }>;
+        aggregateResults?: {
+            meanMAE: number;
+            stdMAE: number;
+            meanRMSE: number;
+            stdRMSE: number;
+            meanMAPE: number;
+            stdMAPE: number;
+        };
+    }
+
+    interface TrainingConfiguration {
+        model: {
+            name: string;
+            type: string;
+            parameters: object;
+        };
+        features: string[];
+        trainingDataPoints: number;
+        validationMethod: string;
+        dateRanges: {
+            trainingStart: string;
+            trainingEnd: string;
+            validationStart: string;
+            validationEnd: string;
+        };
+    }
+
+    Sample Data:
+    ============
+    const sampleTrainingData = {
+        trainingStatus: {
+            status: 'completed',
+            startTime: '2024-01-20T18:30:00Z',
+            duration: 8500,
+            overallProgress: 100,
+            jobId: 'train_job_123456'
+        },
+        modelResults: [
+            {
+                modelName: 'XGBoost',
+                accuracy: 88.1,
+                metrics: {
+                    mae: 10.09,
+                    rmse: 15.97,
+                    mape: 11.2,
+                    r2: 0.920
+                },
+                executionTime: 8.5,
+                status: 'completed',
+                progress: 100
+            }
+        ],
+        trainingLogs: [
+            {
+                timestamp: '2024-01-20T18:30:00Z',
+                level: 'info',
+                message: 'Starting model execution pipeline',
+                component: 'trainer'
+            },
+            {
+                timestamp: '2024-01-20T18:30:05Z',
+                level: 'info',
+                message: 'Starting XGBoost model execution',
+                component: 'model_executor'
+            },
+            {
+                timestamp: '2024-01-20T18:30:33Z',
+                level: 'success',
+                message: 'XGBoost completed with 88.1% accuracy',
+                component: 'model_executor'
+            },
+            {
+                timestamp: '2024-01-20T18:30:33Z',
+                level: 'success',
+                message: 'All models completed successfully',
+                component: 'trainer'
+            }
+        ]
+    };
+    -->
+
+    <script>
+        // ============================================
+        // SAMPLE INTERACTION HANDLERS (Angular will replace)
+        // ============================================
+        
+        // Tab switching functionality
+        document.addEventListener('click', function(e) {
+            if (e.target.hasAttribute('data-tab')) {
+                const targetTab = e.target.getAttribute('data-tab');
+                
+                // Update active tab
+                document.querySelectorAll('.training-tabs__tab').forEach(tab => {
+                    tab.classList.remove('training-tabs__tab--active');
+                });
+                e.target.classList.add('training-tabs__tab--active');
+                
+                // Update active panel
+                document.querySelectorAll('.training-tabs__panel').forEach(panel => {
+                    panel.classList.remove('training-tabs__panel--active');
+                });
+                document.querySelector(`[data-tab-panel="${targetTab}"]`).classList.add('training-tabs__panel--active');
+            }
+        });
+
+        // Simulate different training states for demo
+        let currentState = 'completed'; // Can be: idle, running, completed
+        
+        function updateTrainingState(state) {
+            const header = document.querySelector('.training-status-header');
+            const progressBar = document.querySelector('.training-progress__fill');
+            const statusBadge = document.querySelector('.training-progress__status');
+            
+            // Remove all state classes
+            header.className = header.className.replace(/training-status-header--(idle|running|completed|failed)/g, '');
+            
+            switch(state) {
+                case 'idle':
+                    header.classList.add('training-status-header--idle');
+                    progressBar.style.width = '0%';
+                    statusBadge.textContent = 'Idle';
+                    statusBadge.className = 'training-progress__status training-progress__status--idle';
+                    break;
+                case 'running':
+                    header.classList.add('training-status-header--running');
+                    progressBar.style.width = '45%';
+                    statusBadge.textContent = 'Running';
+                    statusBadge.className = 'training-progress__status training-progress__status--running';
+                    break;
+                case 'completed':
+                    header.classList.add('training-status-header--completed');
+                    progressBar.style.width = '100%';
+                    statusBadge.textContent = 'Completed';
+                    statusBadge.className = 'training-progress__status training-progress__status--completed';
+                    break;
+            }
+        }
+
+        // Demo: Show different states on click
+        document.addEventListener('click', function(e) {
+            if (e.target.textContent === 'Re-run') {
+                updateTrainingState('idle');
+                setTimeout(() => updateTrainingState('running'), 1000);
+                setTimeout(() => updateTrainingState('completed'), 3000);
+            }
+        });
+    </script>
+</body>
+</html>

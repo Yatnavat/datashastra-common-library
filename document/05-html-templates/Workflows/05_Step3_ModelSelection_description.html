@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Selection - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #030213;
+            --color-secondary: #4A90E2;
+            --color-background: #f8f9fa;
+            --color-card-bg: #ffffff;
+            --color-border: #e0e0e0;
+            --color-text-primary: #333333;
+            --color-text-secondary: #666666;
+            --color-text-muted: #999999;
+            --color-success: #10B981;
+            --color-warning: #FF9800;
+            --color-error: #F44336;
+            --color-info: #2196F3;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.16);
+            --shadow-lg: 0 10px 20px rgba(0,0,0,0.19);
+            --transition-fast: 200ms ease;
+            --transition-normal: 300ms ease;
+            --sidebar-width: 420px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--color-text-primary);
+            background-color: var(--color-background);
+        }
+
+        /* ============================================
+           COMPONENT: AppLayout
+           Future: app-layout.component.css
+           ============================================ */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowSidebar
+           Future: workflow-sidebar.component.css
+           ============================================ */
+        .workflow-sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .workflow-sidebar__header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .workflow-sidebar__title {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .workflow-sidebar__subtitle {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+        }
+
+        .workflow-sidebar__steps {
+            padding: var(--spacing-md);
+            flex: 1;
+        }
+
+        .workflow-step {
+            display: flex;
+            align-items: flex-start;
+            padding: var(--spacing-md) var(--spacing-lg);
+            margin-bottom: var(--spacing-xs);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+            position: relative;
+        }
+
+        .workflow-step:hover:not(.workflow-step--active):not(.workflow-step--disabled) {
+            background: var(--color-background);
+        }
+
+        .workflow-step--completed {
+            cursor: pointer;
+        }
+
+        .workflow-step--active {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .workflow-step--disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .workflow-step__indicator {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: var(--spacing-md);
+            flex-shrink: 0;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .workflow-step--completed .workflow-step__indicator {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .workflow-step--active .workflow-step__indicator {
+            background: white;
+            color: var(--color-primary);
+        }
+
+        .workflow-step--disabled .workflow-step__indicator,
+        .workflow-step:not(.workflow-step--completed):not(.workflow-step--active) .workflow-step__indicator {
+            background: var(--color-background);
+            color: var(--color-text-secondary);
+        }
+
+        .workflow-step__content {
+            flex: 1;
+        }
+
+        .workflow-step__title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .workflow-step--active .workflow-step__title {
+            color: white;
+        }
+
+        .workflow-step__description {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+        }
+
+        .workflow-step--active .workflow-step__description {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .workflow-step__checkmark {
+            width: 16px;
+            height: 16px;
+            color: white;
+        }
+
+        /* ============================================
+           COMPONENT: MainContent
+           Future: main-content.component.css
+           ============================================ */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* ============================================
+           COMPONENT: ModelSelectionContainer
+           Future: model-selection.component.css
+           ============================================ */
+        .model-selection-container {
+            padding: var(--spacing-lg);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .model-selection__header {
+            margin-bottom: var(--spacing-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .model-selection__title-section {
+            flex: 1;
+        }
+
+        .model-selection__step-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+            color: var(--color-text-secondary);
+        }
+
+        .model-selection__step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .model-selection__title {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .model-selection__description {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .model-selection__forecast-label {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        /* ============================================
+           COMPONENT: ModelStatsSummary
+           ============================================ */
+        .model-stats-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            text-align: center;
+        }
+
+        .model-stats-summary__item {
+            background: white;
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .model-stats-summary__value {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .model-stats-summary__label {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .model-stats-summary__type {
+            font-size: 14px;
+            color: var(--color-text-primary);
+            margin-top: var(--spacing-xs);
+        }
+
+        /* ============================================
+           COMPONENT: AIRecommendations
+           ============================================ */
+        .ai-recommendations {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .ai-recommendations__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .ai-recommendations__icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-recommendations__title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+        }
+
+        .ai-recommendations__subtitle {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .ai-recommendations__cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        .recommendation-card {
+            background: white;
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            transition: all var(--transition-normal);
+            cursor: pointer;
+        }
+
+        .recommendation-card:hover {
+            border-color: var(--color-secondary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .recommendation-card__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .recommendation-card__icon {
+            width: 20px;
+            height: 20px;
+            color: #FFD700;
+        }
+
+        .recommendation-card__name {
+            font-weight: 500;
+            color: var(--color-text-primary);
+        }
+
+        .recommendation-card__badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #E3F2FD;
+            color: #1976D2;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .recommendation-card__description {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            margin-top: var(--spacing-sm);
+        }
+
+        .recommendation-card__button {
+            width: 100%;
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background var(--transition-fast);
+        }
+
+        .recommendation-card__button:hover {
+            background: #0a0a1a;
+        }
+
+        .recommendation-card__button--selected {
+            background: var(--color-success);
+        }
+
+        /* ============================================
+           COMPONENT: ModelGrid
+           ============================================ */
+        .model-grid {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .model-grid__header {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .model-grid__title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .model-grid__subtitle {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .model-grid__cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        /* Model Card Styles */
+        .model-card {
+            background: white;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            transition: all var(--transition-normal);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .model-card:hover {
+            border-color: var(--color-secondary);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .model-card--selected {
+            border-color: var(--color-secondary);
+            background: #F0F8FF;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+        }
+
+        .model-card__radio {
+            position: absolute;
+            top: var(--spacing-lg);
+            left: var(--spacing-lg);
+        }
+
+        .model-card__content {
+            padding-left: var(--spacing-xl);
+        }
+
+        .model-card__header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .model-card__title-section {
+            flex: 1;
+        }
+
+        .model-card__name {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: 2px;
+        }
+
+        .model-card__category {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+            margin-left: var(--spacing-sm);
+        }
+
+        .model-card__category--statistical {
+            background: #E3F2FD;
+            color: #1976D2;
+        }
+
+        .model-card__category--ml {
+            background: #E8F5E9;
+            color: #388E3C;
+        }
+
+        .model-card__category--dl {
+            background: #F3E5F5;
+            color: #7B1FA2;
+        }
+
+        .model-card__crown {
+            width: 20px;
+            height: 20px;
+            color: #FFD700;
+        }
+
+        .model-card__description {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+            margin-bottom: var(--spacing-md);
+            line-height: 1.5;
+        }
+
+        .model-card__metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .model-card__metric {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .model-card__metric-label {
+            color: var(--color-text-secondary);
+            font-size: 12px;
+        }
+
+        .model-card__metric-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .model-card__metric-value--low {
+            color: var(--color-success);
+        }
+
+        .model-card__metric-value--medium {
+            color: var(--color-warning);
+        }
+
+        .model-card__metric-value--high {
+            color: var(--color-error);
+        }
+
+        .model-card__best-for {
+            padding-top: var(--spacing-md);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .model-card__best-for-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .model-card__best-for-text {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* ============================================
+           COMPONENT: ModelSelectionSummary
+           ============================================ */
+        .model-selection-summary {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .model-selection-summary__icon {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: var(--spacing-sm);
+            color: var(--color-success);
+        }
+
+        .model-selection-summary__text {
+            font-size: 14px;
+            color: var(--color-text-primary);
+        }
+
+        .model-selection-summary__model {
+            font-weight: 500;
+            margin-left: var(--spacing-xs);
+        }
+
+        .model-selection-summary__details {
+            color: var(--color-text-secondary);
+            margin-top: var(--spacing-sm);
+            padding-left: calc(20px + var(--spacing-sm));
+        }
+
+        .model-selection-summary__complete {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .model-selection-summary__complete-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--color-success);
+        }
+
+        .model-selection-summary__complete-text {
+            color: var(--color-text-primary);
+            font-size: 14px;
+        }
+
+        /* ============================================
+           COMPONENT: ConfigurationIssues
+           ============================================ */
+        .configuration-issues {
+            background: #FFF3E0;
+            border: 1px solid #FFB74D;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .configuration-issues__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+            color: #F57C00;
+            font-weight: 500;
+        }
+
+        .configuration-issues__icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .configuration-issues__list {
+            list-style: none;
+            padding-left: calc(20px + var(--spacing-sm));
+        }
+
+        .configuration-issues__item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-sm);
+            color: var(--color-text-primary);
+            font-size: 14px;
+        }
+
+        .configuration-issues__item::before {
+            content: "•";
+            color: #F57C00;
+        }
+
+        /* ============================================
+           COMPONENT: ActionBar
+           ============================================ */
+        .action-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-md);
+            padding: var(--spacing-lg) 0;
+        }
+
+        .action-bar__button {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: 1px solid var(--color-border);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .action-bar__button--secondary {
+            background: white;
+            color: var(--color-text-primary);
+        }
+
+        .action-bar__button--secondary:hover {
+            background: var(--color-background);
+        }
+
+        .action-bar__button--primary {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .action-bar__button--primary:hover {
+            background: #0a0a1a;
+        }
+
+        .action-bar__button--primary:disabled {
+            background: var(--color-border);
+            border-color: var(--color-border);
+            color: var(--color-text-muted);
+            cursor: not-allowed;
+        }
+
+        .action-bar__button-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN
+           ============================================ */
+        @media (max-width: 768px) {
+            .workflow-sidebar {
+                display: none;
+            }
+
+            .model-selection-container {
+                padding: var(--spacing-md);
+            }
+
+            .model-stats-summary {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-md);
+            }
+
+            .ai-recommendations__cards {
+                grid-template-columns: 1fr;
+            }
+
+            .model-grid__cards {
+                grid-template-columns: 1fr;
+            }
+
+            .model-card__metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .action-bar {
+                flex-direction: column;
+            }
+
+            .action-bar__button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .workflow-sidebar {
+                width: 300px;
+            }
+
+            .model-stats-summary {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .ai-recommendations__cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .model-grid__cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* ============================================
+           UTILITY CLASSES
+           ============================================ */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .ng-repeat-item {
+            /* Placeholder for Angular *ngFor */
+        }
+
+        .ng-condition {
+            /* Placeholder for Angular *ngIf */
+        }
+    </style>
+</head>
+<body>
+    <!--
+    TypeScript Interfaces:
+    ======================
+    interface WorkflowStep {
+        id: number;
+        name: string;
+        description: string;
+        status: 'completed' | 'active' | 'disabled';
+        route: string;
+    }
+
+    interface ActivityInfo {
+        name: string;
+        client: string;
+        project: string;
+    }
+
+    interface ForecastingModel {
+        id: string;
+        name: string;
+        category: 'Statistical' | 'Machine Learning' | 'Deep Learning';
+        description: string;
+        complexity: 'Low' | 'Medium' | 'High';
+        accuracy: 'Medium' | 'Medium-High' | 'High';
+        estimatedTime: string;
+        interpretability: 'Low' | 'Medium' | 'High';
+        bestFor: string[];
+        recommended?: boolean;
+        available: boolean;
+        icon?: string;
+        dataFitScore?: number;
+    }
+
+    interface ModelSelectionState {
+        selectedModel: ForecastingModel | null;
+        availableModels: ForecastingModel[];
+        aiRecommendations: ForecastingModel[];
+        validationStatus: {
+            isValid: boolean;
+            errors: string[];
+        };
+        isLoading: boolean;
+    }
+
+    Sample Data:
+    ============
+    const workflowSteps: WorkflowStep[] = [
+        { id: 1, name: "Data Upload", description: "Upload and validate your data", status: "completed", route: "/data-upload" },
+        { id: 2, name: "Data Analysis", description: "Explore data patterns and quality", status: "completed", route: "/data-analysis" },
+        { id: 3, name: "Model Selection", description: "Choose forecasting models", status: "active", route: "/model-selection" },
+        { id: 4, name: "Feature Selection", description: "Configure feature engineering", status: "disabled", route: "/feature-selection" },
+        { id: 5, name: "Aggregation", description: "Set aggregation levels and scope", status: "disabled", route: "/aggregation" },
+        { id: 6, name: "Date Ranges", description: "Configure training/testing periods", status: "disabled", route: "/date-ranges" },
+        { id: 7, name: "Model Training", description: "Train and evaluate models", status: "disabled", route: "/model-training" },
+        { id: 8, name: "Results", description: "View results and insights", status: "disabled", route: "/results" }
+    ];
+
+    const activityInfo: ActivityInfo = {
+        name: "Electronics Q4 Analysis",
+        client: "Acme Corporation",
+        project: "Q4 Demand Forecast"
+    };
+    -->
+
+    <!-- ============================================
+         COMPONENT: AppLayout
+         Angular: app-layout selector
+         ============================================ -->
+    <div class="app-layout">
+        <!-- ============================================
+             COMPONENT: WorkflowSidebar
+             Angular: app-workflow-sidebar selector
+             INPUTS: @Input() steps: WorkflowStep[]
+                     @Input() activeStep: number
+                     @Input() activityInfo: ActivityInfo
+             OUTPUTS: @Output() stepSelected: EventEmitter<WorkflowStep>
+             ============================================ -->
+        <aside class="workflow-sidebar">
+            <div class="workflow-sidebar__header">
+                <h2 class="workflow-sidebar__title" data-bind="activityInfo.name">Electronics Q4 Analysis</h2>
+                <p class="workflow-sidebar__subtitle">
+                    <span data-bind="activityInfo.client">Acme Corporation</span> • 
+                    <span data-bind="activityInfo.project">Q4 Demand Forecast</span>
+                </p>
+            </div>
+
+            <nav class="workflow-sidebar__steps" role="navigation" aria-label="Workflow steps">
+                <!-- Angular: *ngFor="let step of workflowSteps" -->
+                <!-- Step 1: Data Upload (Completed) -->
+                <div class="workflow-step workflow-step--completed ng-repeat-item" 
+                     data-click="navigateToStep"
+                     tabindex="0"
+                     role="link"
+                     aria-label="Step 1: Data Upload - Completed">
+                    <div class="workflow-step__indicator">
+                        <span class="workflow-step__checkmark">✓</span>
+                    </div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Data Upload</div>
+                        <div class="workflow-step__description">Upload and validate your data</div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Data Analysis (Completed) -->
+                <div class="workflow-step workflow-step--completed ng-repeat-item" 
+                     data-click="navigateToStep"
+                     tabindex="0"
+                     role="link"
+                     aria-label="Step 2: Data Analysis - Completed">
+                    <div class="workflow-step__indicator">
+                        <span class="workflow-step__checkmark">✓</span>
+                    </div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Data Analysis</div>
+                        <div class="workflow-step__description">Explore data patterns and quality</div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Model Selection (Active) -->
+                <div class="workflow-step workflow-step--active ng-repeat-item" 
+                     data-click="navigateToStep"
+                     tabindex="0"
+                     role="link"
+                     aria-current="page"
+                     aria-label="Step 3: Model Selection - Current">
+                    <div class="workflow-step__indicator">3</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Model Selection</div>
+                        <div class="workflow-step__description">Choose forecasting models</div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Feature Selection (Disabled) -->
+                <div class="workflow-step workflow-step--disabled ng-repeat-item" 
+                     aria-disabled="true"
+                     aria-label="Step 4: Feature Selection - Not available">
+                    <div class="workflow-step__indicator">4</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Feature Selection</div>
+                        <div class="workflow-step__description">Configure feature engineering</div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Aggregation (Disabled) -->
+                <div class="workflow-step workflow-step--disabled ng-repeat-item" 
+                     aria-disabled="true"
+                     aria-label="Step 5: Aggregation - Not available">
+                    <div class="workflow-step__indicator">5</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Aggregation</div>
+                        <div class="workflow-step__description">Set aggregation levels and scope</div>
+                    </div>
+                </div>
+
+                <!-- Step 6: Date Ranges (Disabled) -->
+                <div class="workflow-step workflow-step--disabled ng-repeat-item" 
+                     aria-disabled="true"
+                     aria-label="Step 6: Date Ranges - Not available">
+                    <div class="workflow-step__indicator">6</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Date Ranges</div>
+                        <div class="workflow-step__description">Configure training/testing periods</div>
+                    </div>
+                </div>
+
+                <!-- Step 7: Model Training (Disabled) -->
+                <div class="workflow-step workflow-step--disabled ng-repeat-item" 
+                     aria-disabled="true"
+                     aria-label="Step 7: Model Training - Not available">
+                    <div class="workflow-step__indicator">7</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Model Training</div>
+                        <div class="workflow-step__description">Train and evaluate models</div>
+                    </div>
+                </div>
+
+                <!-- Step 8: Results (Disabled) -->
+                <div class="workflow-step workflow-step--disabled ng-repeat-item" 
+                     aria-disabled="true"
+                     aria-label="Step 8: Results - Not available">
+                    <div class="workflow-step__indicator">8</div>
+                    <div class="workflow-step__content">
+                        <div class="workflow-step__title">Results</div>
+                        <div class="workflow-step__description">View results and insights</div>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- ============================================
+             COMPONENT: MainContent
+             ============================================ -->
+        <main class="main-content">
+            <!-- ============================================
+                 COMPONENT: ModelSelectionComponent
+                 Angular: app-model-selection selector
+                 INPUTS: @Input() activityId: string
+                 OUTPUTS: @Output() modelSelected: EventEmitter<ForecastingModel>
+                 SERVICE: ModelSelectionService, AIRecommendationService
+                 ============================================ -->
+            <div class="model-selection-container">
+                <!-- ============================================
+                     COMPONENT: ModelSelectionHeader
+                     Angular: app-model-selection-header selector
+                     ============================================ -->
+                <header class="model-selection__header">
+                    <div class="model-selection__title-section">
+                        <div class="model-selection__step-indicator">
+                            <span class="model-selection__step-circle">3</span>
+                            <span>Model Selection</span>
+                        </div>
+                        <h1 class="model-selection__title">Choose forecasting models</h1>
+                        <p class="model-selection__description">Select a single forecasting model for your demand prediction</p>
+                    </div>
+                    <div class="model-selection__forecast-label">New Forecast</div>
+                </header>
+
+                <!-- ============================================
+                     COMPONENT: ModelStatsSummary
+                     Angular: app-model-stats-summary selector
+                     INPUTS: @Input() selectedModel: ForecastingModel
+                     ============================================ -->
+                <section class="model-stats-summary">
+                    <div class="model-stats-summary__item">
+                        <div class="model-stats-summary__value" data-bind="selectedModelsCount">1</div>
+                        <div class="model-stats-summary__label">Selected Model</div>
+                    </div>
+                    <div class="model-stats-summary__item">
+                        <div class="model-stats-summary__value" data-bind="modelType">Machine Learning</div>
+                        <div class="model-stats-summary__label">Model Type</div>
+                    </div>
+                    <div class="model-stats-summary__item">
+                        <div class="model-stats-summary__value" data-bind="trainingTime">~10</div>
+                        <div class="model-stats-summary__label">Training Time (min)</div>
+                    </div>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: AIRecommendations
+                     Angular: app-ai-recommendations selector
+                     INPUTS: @Input() recommendations: ForecastingModel[]
+                     OUTPUTS: @Output() modelSelected: EventEmitter<ForecastingModel>
+                     ============================================ -->
+                <section class="ai-recommendations" role="region" aria-label="AI Model Recommendations">
+                    <div class="ai-recommendations__header">
+                        <span class="ai-recommendations__icon">👑</span>
+                        <h2 class="ai-recommendations__title">AI Recommendations</h2>
+                    </div>
+                    <p class="ai-recommendations__subtitle">Models recommended for your data characteristics</p>
+                    
+                    <div class="ai-recommendations__cards">
+                        <!-- Angular: *ngFor="let model of aiRecommendations" -->
+                        <article class="recommendation-card ng-repeat-item" data-click="selectRecommendedModel">
+                            <div class="recommendation-card__header">
+                                <span class="recommendation-card__icon">👑</span>
+                                <span class="recommendation-card__name">Prophet</span>
+                                <span class="recommendation-card__badge">Statistical</span>
+                            </div>
+                            <p class="recommendation-card__description">Excellent for seasonal business data</p>
+                            <button class="recommendation-card__button" data-click="selectModel" type="button">
+                                Select Model
+                            </button>
+                        </article>
+
+                        <article class="recommendation-card ng-repeat-item" data-click="selectRecommendedModel">
+                            <div class="recommendation-card__header">
+                                <span class="recommendation-card__icon">👑</span>
+                                <span class="recommendation-card__name">XGBoost</span>
+                                <span class="recommendation-card__badge" style="background: #E8F5E9; color: #388E3C;">Machine Learning</span>
+                            </div>
+                            <p class="recommendation-card__description">High accuracy with your feature set</p>
+                            <button class="recommendation-card__button recommendation-card__button--selected" data-click="selectModel" type="button">
+                                Selected
+                            </button>
+                        </article>
+
+                        <article class="recommendation-card ng-repeat-item" data-click="selectRecommendedModel">
+                            <div class="recommendation-card__header">
+                                <span class="recommendation-card__icon">👑</span>
+                                <span class="recommendation-card__name">LSTM</span>
+                                <span class="recommendation-card__badge" style="background: #F3E5F5; color: #7B1FA2;">Deep Learning</span>
+                            </div>
+                            <p class="recommendation-card__description">Strong temporal pattern detection</p>
+                            <button class="recommendation-card__button" data-click="selectModel" type="button">
+                                Select Model
+                            </button>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: ModelGrid
+                     Angular: app-model-grid selector
+                     INPUTS: @Input() models: ForecastingModel[]
+                             @Input() selectedModel: ForecastingModel
+                     OUTPUTS: @Output() modelSelected: EventEmitter<ForecastingModel>
+                     ============================================ -->
+                <section class="model-grid" role="radiogroup" aria-label="Select forecasting model">
+                    <div class="model-grid__header">
+                        <h2 class="model-grid__title">Available Models</h2>
+                        <p class="model-grid__subtitle">Select one forecasting model for your demand prediction</p>
+                    </div>
+
+                    <div class="model-grid__cards">
+                        <!-- Angular: *ngFor="let model of availableModels" -->
+                        <!-- ARIMA Model Card -->
+                        <article class="model-card ng-repeat-item" 
+                                 role="radio" 
+                                 aria-checked="false"
+                                 data-click="selectModel"
+                                 tabindex="0">
+                            <input type="radio" 
+                                   class="model-card__radio" 
+                                   name="modelSelection" 
+                                   value="arima"
+                                   data-bind="selectedModel.id"
+                                   aria-label="ARIMA Model">
+                            
+                            <div class="model-card__content">
+                                <div class="model-card__header">
+                                    <div class="model-card__title-section">
+                                        <div>
+                                            <span class="model-card__name">ARIMA</span>
+                                            <span class="model-card__category model-card__category--statistical">Statistical</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <p class="model-card__description">
+                                    Auto-Regressive Integrated Moving Average - Classic time series model
+                                </p>
+                                
+                                <div class="model-card__metrics">
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Complexity:</span>
+                                        <span class="model-card__metric-value model-card__metric-value--medium">Medium</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Est. Time:</span>
+                                        <span class="model-card__metric-value">2-5 min</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Accuracy:</span>
+                                        <span class="model-card__metric-value model-card__metric-value--medium">Medium-High</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Interpretable:</span>
+                                        <span class="model-card__metric-value">High</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="model-card__best-for">
+                                    <div class="model-card__best-for-label">Best for:</div>
+                                    <div class="model-card__best-for-text">Stable trends, seasonal patterns</div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Prophet Model Card -->
+                        <article class="model-card ng-repeat-item" 
+                                 role="radio" 
+                                 aria-checked="false"
+                                 data-click="selectModel"
+                                 tabindex="0">
+                            <input type="radio" 
+                                   class="model-card__radio" 
+                                   name="modelSelection" 
+                                   value="prophet"
+                                   data-bind="selectedModel.id"
+                                   aria-label="Prophet Model">
+                            
+                            <div class="model-card__content">
+                                <div class="model-card__header">
+                                    <div class="model-card__title-section">
+                                        <div>
+                                            <span class="model-card__name">Prophet</span>
+                                            <span class="model-card__category model-card__category--statistical">Statistical</span>
+                                        </div>
+                                    </div>
+                                    <span class="model-card__crown">👑</span>
+                                </div>
+                                
+                                <p class="model-card__description">
+                                    Facebook Prophet - Robust to outliers and missing data
+                                </p>
+                                
+                                <div class="model-card__metrics">
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Complexity:</span>
+                                        <span class="model-card__metric-value model-card__metric-value--low">Low</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Est. Time:</span>
+                                        <span class="model-card__metric-value">3-7 min</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Accuracy:</span>
+                                        <span class="model-card__metric-value model-card__metric-value--medium">Medium-High</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Interpretable:</span>
+                                        <span class="model-card__metric-value">High</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="model-card__best-for">
+                                    <div class="model-card__best-for-label">Best for:</div>
+                                    <div class="model-card__best-for-text">Business data with strong seasonal effects</div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- XGBoost Model Card (Selected) -->
+                        <article class="model-card model-card--selected ng-repeat-item" 
+                                 role="radio" 
+                                 aria-checked="true"
+                                 data-click="selectModel"
+                                 tabindex="0">
+                            <input type="radio" 
+                                   class="model-card__radio" 
+                                   name="modelSelection" 
+                                   value="xgboost"
+                                   checked
+                                   data-bind="selectedModel.id"
+                                   aria-label="XGBoost Model">
+                            
+                            <div class="model-card__content">
+                                <div class="model-card__header">
+                                    <div class="model-card__title-section">
+                                        <div>
+                                            <span class="model-card__name">XGBoost</span>
+                                            <span class="model-card__category model-card__category--ml">Machine Learning</span>
+                                        </div>
+                                    </div>
+                                    <span class="model-card__crown">👑</span>
+                                </div>
+                                
+                                <p class="model-card__description">
+                                    Extreme Gradient Boosting - Powerful ensemble method
+                                </p>
+                                
+                                <div class="model-card__metrics">
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Complexity:</span>
+                                        <span class="model-card__metric-value model-card__metric-value--high">High</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Est. Time:</span>
+                                        <span class="model-card__metric-value">5-15 min</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Accuracy:</span>
+                                        <span class="model-card__metric-value model-card__metric-value--high">High</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Interpretable:</span>
+                                        <span class="model-card__metric-value">Medium</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="model-card__best-for">
+                                    <div class="model-card__best-for-label">Best for:</div>
+                                    <div class="model-card__best-for-text">Complex patterns, multiple features</div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- LSTM Model Card -->
+                        <article class="model-card ng-repeat-item" 
+                                 role="radio" 
+                                 aria-checked="false"
+                                 data-click="selectModel"
+                                 tabindex="0">
+                            <input type="radio" 
+                                   class="model-card__radio" 
+                                   name="modelSelection" 
+                                   value="lstm"
+                                   data-bind="selectedModel.id"
+                                   aria-label="LSTM Model">
+                            
+                            <div class="model-card__content">
+                                <div class="model-card__header">
+                                    <div class="model-card__title-section">
+                                        <div>
+                                            <span class="model-card__name">LSTM</span>
+                                            <span class="model-card__category model-card__category--dl">Deep Learning</span>
+                                        </div>
+                                    </div>
+                                    <span class="model-card__crown">👑</span>
+                                </div>
+                                
+                                <p class="model-card__description">
+                                    Long Short-Term Memory - Deep learning for sequences
+                                </p>
+                                
+                                <div class="model-card__metrics">
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Complexity:</span>
+                                        <span class="model-card__metric-value model-card__metric-value--high">High</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Est. Time:</span>
+                                        <span class="model-card__metric-value">10-30 min</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Accuracy:</span>
+                                        <span class="model-card__metric-value model-card__metric-value--high">High</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Interpretable:</span>
+                                        <span class="model-card__metric-value">Low</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="model-card__best-for">
+                                    <div class="model-card__best-for-label">Best for:</div>
+                                    <div class="model-card__best-for-text">Long sequences, complex temporal patterns</div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- LightGBM Model Card -->
+                        <article class="model-card ng-repeat-item" 
+                                 role="radio" 
+                                 aria-checked="false"
+                                 data-click="selectModel"
+                                 tabindex="0">
+                            <input type="radio" 
+                                   class="model-card__radio" 
+                                   name="modelSelection" 
+                                   value="lightgbm"
+                                   data-bind="selectedModel.id"
+                                   aria-label="LightGBM Model">
+                            
+                            <div class="model-card__content">
+                                <div class="model-card__header">
+                                    <div class="model-card__title-section">
+                                        <div>
+                                            <span class="model-card__name">LightGBM</span>
+                                            <span class="model-card__category model-card__category--ml">Machine Learning</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <p class="model-card__description">
+                                    Light Gradient Boosting Machine - Fast and efficient
+                                </p>
+                                
+                                <div class="model-card__metrics">
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Complexity:</span>
+                                        <span class="model-card__metric-value model-card__metric-value--high">High</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Est. Time:</span>
+                                        <span class="model-card__metric-value">3-10 min</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Accuracy:</span>
+                                        <span class="model-card__metric-value model-card__metric-value--high">High</span>
+                                    </div>
+                                    <div class="model-card__metric">
+                                        <span class="model-card__metric-label">Interpretable:</span>
+                                        <span class="model-card__metric-value">Medium</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="model-card__best-for">
+                                    <div class="model-card__best-for-label">Best for:</div>
+                                    <div class="model-card__best-for-text">Large datasets, fast training</div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: ModelSelectionSummary
+                     Angular: app-model-selection-summary selector
+                     INPUTS: @Input() selectedModel: ForecastingModel
+                     ============================================ -->
+                <section class="model-selection-summary ng-condition" data-show="selectedModel">
+                    <div class="model-selection-summary__text">
+                        <span class="model-selection-summary__icon">✓</span>
+                        Selected Model:<span class="model-selection-summary__model" data-bind="selectedModel.name">XGBoost</span>
+                    </div>
+                    <div class="model-selection-summary__details">
+                        Extreme Gradient Boosting - Powerful ensemble method<br>
+                        Estimated training time: ~10 minutes
+                    </div>
+                    <div class="model-selection-summary__complete">
+                        <span class="model-selection-summary__complete-icon">✓</span>
+                        <span class="model-selection-summary__complete-text">Model Selection Complete</span>
+                    </div>
+                    <div class="model-selection-summary__details">
+                        Ready to proceed with XGBoost forecasting model
+                    </div>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: ConfigurationIssues
+                     Angular: app-configuration-issues selector
+                     INPUTS: @Input() validationErrors: string[]
+                     ============================================ -->
+                <section class="configuration-issues ng-condition" data-show="validationErrors.length" style="display: none;">
+                    <div class="configuration-issues__header">
+                        <span class="configuration-issues__icon">⚠️</span>
+                        Configuration Issues:
+                    </div>
+                    <ul class="configuration-issues__list">
+                        <!-- Angular: *ngFor="let error of validationErrors" -->
+                        <li class="configuration-issues__item ng-repeat-item">
+                            A forecasting model must be selected
+                        </li>
+                    </ul>
+                </section>
+
+                <!-- ============================================
+                     COMPONENT: ActionBar
+                     Angular: app-action-bar selector
+                     OUTPUTS: @Output() nextStep: EventEmitter<void>
+                              @Output() previousStep: EventEmitter<void>
+                     ============================================ -->
+                <div class="action-bar">
+                    <button type="button" 
+                            class="action-bar__button action-bar__button--secondary"
+                            data-click="goToPreviousStep"
+                            aria-label="Go back to previous step">
+                        <span class="action-bar__button-icon">←</span>
+                        Back
+                    </button>
+                    <button type="button" 
+                            class="action-bar__button action-bar__button--primary"
+                            data-click="continueToFeatureSelection"
+                            data-validate="modelSelected"
+                            aria-label="Continue to Feature Selection">
+                        Continue to Feature Selection
+                        <span class="action-bar__button-icon">→</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Skip link for keyboard navigation -->
+    <a href="#main" class="visually-hidden">Skip to main content</a>
+</body>
+</html>

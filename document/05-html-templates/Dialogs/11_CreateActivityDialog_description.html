@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Activity Dialog - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-foreground: #ffffff;
+            --color-secondary: #64748b;
+            --color-secondary-foreground: #ffffff;
+            --color-background: #ffffff;
+            --color-foreground: #0f172a;
+            --color-muted: #f1f5f9;
+            --color-muted-foreground: #64748b;
+            --color-border: #e2e8f0;
+            --color-input: #ffffff;
+            --color-ring: #2563eb;
+            --color-destructive: #dc2626;
+            --color-success: #16a34a;
+            --color-warning: #d97706;
+            
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            
+            --radius: 0.5rem;
+            --radius-lg: 0.75rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-foreground);
+            background-color: var(--color-background);
+        }
+
+        /* ============================================
+           COMPONENT: CreateActivityDialog
+           Angular: app-create-activity-dialog selector
+           INPUTS: @Input() isOpen: boolean
+           OUTPUTS: @Output() onClose: EventEmitter<void>
+                   @Output() onActivityCreated: EventEmitter<Activity>
+           SERVICE: ActivityService, ClientService
+           ============================================ */
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-md);
+        }
+
+        .modal-overlay.ng-condition {
+            /* Will become *ngIf="isDialogOpen" */
+        }
+
+        /* Modal Content */
+        .modal-content {
+            background-color: var(--color-background);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            max-width: 48rem; /* max-w-2xl */
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* Dialog Header */
+        .dialog-header {
+            padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .dialog-title {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .dialog-description {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+        }
+
+        .dialog-close {
+            position: absolute;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--color-muted-foreground);
+            border-radius: var(--radius);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .dialog-close:hover {
+            background-color: var(--color-muted);
+        }
+
+        /* Form Styles */
+        .create-activity-form {
+            padding: 0 var(--spacing-xl) var(--spacing-xl);
+        }
+
+        .form-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .section-header h3 {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .required-badge {
+            background-color: var(--color-destructive);
+            color: white;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-lg);
+        }
+
+        @media (min-width: 768px) {
+            .form-grid--two-columns {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Form Field */
+        .form-field {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .form-label {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .required-asterisk {
+            color: var(--color-destructive);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: var(--spacing-sm) 12px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            font-size: 14px;
+            transition: border-color 0.2s, background-color 0.2s;
+            background-color: var(--color-input);
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--color-ring);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-input--error,
+        .form-select--error,
+        .form-textarea--error {
+            border-color: var(--color-destructive);
+            background-color: #fef2f2;
+        }
+
+        .form-input--success,
+        .form-select--success {
+            border-color: var(--color-success);
+            background-color: #f0fdf4;
+        }
+
+        .form-textarea {
+            resize: none;
+            min-height: 80px;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 8px center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        .form-select:disabled {
+            background-color: var(--color-muted);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .form-description {
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+            margin-top: 4px;
+        }
+
+        .form-error {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: var(--color-destructive);
+            margin-top: 4px;
+        }
+
+        /* Selection Confirmation */
+        .selection-confirmation {
+            padding: var(--spacing-lg);
+            background: linear-gradient(to right, #dbeafe, #dcfce7);
+            border: 1px solid #bfdbfe;
+            border-radius: var(--radius);
+            margin-top: var(--spacing-lg);
+        }
+
+        .selection-confirmation__content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .selection-confirmation__text {
+            font-weight: 500;
+            color: #166534;
+        }
+
+        .selection-confirmation__path {
+            font-size: 14px;
+            color: #166534;
+        }
+
+        /* Section Separator */
+        .section-separator {
+            height: 1px;
+            background-color: var(--color-border);
+            margin: var(--spacing-xl) 0;
+        }
+
+        /* Advanced Options */
+        .advanced-options {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .advanced-options__toggle {
+            background: none;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 14px;
+            color: var(--color-foreground);
+            cursor: pointer;
+            padding: var(--spacing-sm) 0;
+            transition: color 0.2s;
+        }
+
+        .advanced-options__toggle:hover {
+            color: var(--color-primary);
+        }
+
+        .advanced-options__chevron {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+        }
+
+        .advanced-options__chevron--expanded {
+            transform: rotate(90deg);
+        }
+
+        .advanced-options__content {
+            padding-left: var(--spacing-xl);
+            border-left: 2px solid var(--color-border);
+            margin-top: var(--spacing-lg);
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Checkbox */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .checkbox-input {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--color-primary);
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+        }
+
+        /* Priority Indicators */
+        .priority-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .priority-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .priority-dot--high {
+            background-color: #dc2626;
+        }
+
+        .priority-dot--medium {
+            background-color: #d97706;
+        }
+
+        .priority-dot--low {
+            background-color: #16a34a;
+        }
+
+        /* Dialog Footer */
+        .dialog-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: var(--spacing-xl);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .dialog-footer__info {
+            font-size: 14px;
+            color: var(--color-muted-foreground);
+        }
+
+        .dialog-footer__actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 100px;
+            justify-content: center;
+            text-decoration: none;
+            border: none;
+        }
+
+        .btn--primary {
+            background-color: var(--color-primary);
+            color: var(--color-primary-foreground);
+            min-width: 128px;
+        }
+
+        .btn--primary:hover:not(:disabled) {
+            background-color: #1d4ed8;
+        }
+
+        .btn--outline {
+            background-color: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-foreground);
+        }
+
+        .btn--outline:hover:not(:disabled) {
+            background-color: var(--color-muted);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn--loading .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Icons */
+        .icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .icon--sm {
+            width: 16px;
+            height: 16px;
+        }
+
+        .icon--xs {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 767px) {
+            .modal-content {
+                margin: var(--spacing-md);
+                max-height: calc(100vh - 2rem);
+            }
+            
+            .dialog-header,
+            .create-activity-form {
+                padding-left: var(--spacing-lg);
+                padding-right: var(--spacing-lg);
+            }
+            
+            .form-grid--two-columns {
+                grid-template-columns: 1fr;
+            }
+            
+            .dialog-footer {
+                flex-direction: column;
+                gap: var(--spacing-lg);
+                align-items: stretch;
+            }
+            
+            .dialog-footer__actions {
+                justify-content: stretch;
+            }
+            
+            .btn {
+                flex: 1;
+            }
+        }
+
+        /* Loading States */
+        .loading-overlay {
+            position: relative;
+        }
+
+        .loading-overlay::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius);
+        }
+
+        .loading-projects::after {
+            content: 'Loading projects...';
+            font-size: 14px;
+            color: var(--color-muted-foreground);
+        }
+    </style>
+</head>
+<body>
+    <!--
+    TypeScript Interfaces:
+    ======================
+    interface Client {
+        id: string;
+        name: string;
+        industry: string;
+        projectCount: number;
+        permissions: string[];
+        status: 'active' | 'inactive';
+    }
+
+    interface Project {
+        id: string;
+        name: string;
+        clientId: string;
+        description: string;
+        activityCount: number;
+        status: 'active' | 'completed' | 'on-hold';
+        permissions: string[];
+    }
+
+    interface Industry {
+        id: string;
+        name: string;
+        activityCount: number;
+    }
+
+    interface Priority {
+        value: 'high' | 'medium' | 'low';
+        label: string;
+        color: string;
+    }
+
+    interface ActivityFormData {
+        selectedClient: string;
+        selectedProject: string;
+        activityName: string;
+        activityDescription: string;
+        selectedIndustry: string;
+        selectedPriority: string;
+        forecastHorizon: number;
+        autoStartWorkflow: boolean;
+        templateMode: boolean;
+        tags: string;
+    }
+
+    interface ValidationState {
+        isFormValid: boolean;
+        fieldErrors: Record<string, string>;
+        fieldStates: Record<string, 'valid' | 'invalid' | 'pending' | 'optional'>;
+        isValidating: boolean;
+    }
+
+    Sample Data:
+    ============
+    const sampleClients: Client[] = [
+        {
+            id: "client_001",
+            name: "TechCorp Solutions",
+            industry: "Technology",
+            projectCount: 8,
+            permissions: ["read", "write", "create"],
+            status: "active"
+        },
+        {
+            id: "client_002", 
+            name: "RetailMax Inc",
+            industry: "Retail",
+            projectCount: 12,
+            permissions: ["read", "write"],
+            status: "active"
+        },
+        {
+            id: "client_003",
+            name: "Manufacturing Plus",
+            industry: "Manufacturing", 
+            projectCount: 6,
+            permissions: ["read", "write", "create"],
+            status: "active"
+        }
+    ];
+
+    const sampleProjects: Project[] = [
+        {
+            id: "project_045",
+            name: "Product Demand Optimization", 
+            clientId: "client_001",
+            description: "Comprehensive demand forecasting and optimization initiative",
+            activityCount: 5,
+            status: "active",
+            permissions: ["read", "write", "create", "execute"]
+        },
+        {
+            id: "project_046",
+            name: "Inventory Management Enhancement",
+            clientId: "client_001", 
+            description: "Strategic inventory management with demand-driven planning",
+            activityCount: 3,
+            status: "active",
+            permissions: ["read", "write", "create"]
+        }
+    ];
+
+    const sampleIndustries: Industry[] = [
+        { id: "technology", name: "Technology", activityCount: 45 },
+        { id: "retail", name: "Retail", activityCount: 67 },
+        { id: "manufacturing", name: "Manufacturing", activityCount: 34 },
+        { id: "healthcare", name: "Healthcare", activityCount: 23 }
+    ];
+    -->
+
+    <!-- ============================================
+         COMPONENT: CreateActivityDialog
+         Angular: app-create-activity-dialog selector
+         INPUTS: @Input() isOpen: boolean
+         OUTPUTS: @Output() onClose: EventEmitter<void>
+                 @Output() onActivityCreated: EventEmitter<Activity>
+         SERVICE: ActivityService, ClientService, ProjectService
+         ============================================ -->
+    <div class="modal-overlay ng-condition" data-show="isCreateDialogOpen">
+        <div class="modal-content" role="dialog" aria-labelledby="dialog-title" aria-describedby="dialog-description">
+            
+            <!-- Dialog Header -->
+            <header class="dialog-header">
+                <h1 id="dialog-title" class="dialog-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Create New Forecasting Activity
+                </h1>
+                <p id="dialog-description" class="dialog-description">
+                    Set up a new demand forecasting activity within your selected client and project
+                </p>
+                <button 
+                    class="dialog-close" 
+                    data-click="closeDialog" 
+                    aria-label="Close dialog"
+                    title="Close"
+                >
+                    ×
+                </button>
+            </header>
+
+            <!-- Create Activity Form -->
+            <form class="create-activity-form" data-submit="onSubmit">
+                
+                <!-- Client & Project Selection Section -->
+                <section class="form-section">
+                    <div class="section-header">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+                            <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-8-4"/>
+                        </svg>
+                        <h3>Client & Project Information</h3>
+                        <span class="required-badge">Required</span>
+                    </div>
+
+                    <div class="form-grid form-grid--two-columns">
+                        <!-- Client Selection -->
+                        <div class="form-field">
+                            <label for="client-select" class="form-label">
+                                Client
+                                <span class="required-asterisk">*</span>
+                            </label>
+                            <select 
+                                id="client-select" 
+                                class="form-select ng-condition" 
+                                data-bind="selectedClient"
+                                data-change="handleClientChange"
+                                data-validate="required"
+                                required
+                            >
+                                <option value="">Choose your client</option>
+                                <option value="client_001">TechCorp Solutions</option>
+                                <option value="client_002">RetailMax Inc</option>
+                                <option value="client_003">Manufacturing Plus</option>
+                            </select>
+                            <div class="form-error ng-condition" data-show="errors.client">
+                                <svg class="icon--xs" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                                </svg>
+                                Client selection is required
+                            </div>
+                        </div>
+
+                        <!-- Project Selection -->
+                        <div class="form-field">
+                            <label for="project-select" class="form-label">
+                                Project
+                                <span class="required-asterisk">*</span>
+                            </label>
+                            <div class="loading-overlay ng-condition" data-show="isLoadingProjects">
+                                <select 
+                                    id="project-select" 
+                                    class="form-select ng-condition" 
+                                    data-bind="selectedProject"
+                                    data-change="handleProjectChange"
+                                    data-validate="required"
+                                    data-disabled="!selectedClient"
+                                    required
+                                >
+                                    <option value="">Select client first</option>
+                                    <option value="project_045">Product Demand Optimization</option>
+                                    <option value="project_046">Inventory Management Enhancement</option>
+                                </select>
+                            </div>
+                            <div class="form-error ng-condition" data-show="errors.project">
+                                <svg class="icon--xs" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                                </svg>
+                                Project selection is required
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selection Confirmation -->
+                    <div class="selection-confirmation ng-condition" data-show="selectedClient && selectedProject">
+                        <div class="selection-confirmation__content">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div>
+                                <div class="selection-confirmation__text">Selection Confirmed</div>
+                                <div class="selection-confirmation__path">
+                                    TechCorp Solutions → Product Demand Optimization
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="section-separator"></div>
+
+                <!-- Activity Details Section -->
+                <section class="form-section">
+                    <div class="section-header">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <h3>Activity Details</h3>
+                    </div>
+
+                    <!-- Activity Name -->
+                    <div class="form-field">
+                        <label for="activity-name" class="form-label">
+                            Activity Name
+                            <span class="required-asterisk">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="activity-name" 
+                            class="form-input" 
+                            data-bind="activityName"
+                            data-validate="required|minLength:3|maxLength:100"
+                            placeholder="Enter a descriptive name for your forecasting activity"
+                            value="Q1 2024 Electronics Forecast"
+                            required
+                        />
+                        <p class="form-description">
+                            Choose a name that clearly identifies the purpose and scope of this forecast
+                        </p>
+                        <div class="form-error ng-condition" data-show="errors.activityName">
+                            <svg class="icon--xs" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                            </svg>
+                            Activity name must be at least 3 characters long
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-field">
+                        <label for="activity-description" class="form-label">Description</label>
+                        <textarea 
+                            id="activity-description" 
+                            class="form-textarea" 
+                            data-bind="activityDescription"
+                            placeholder="Provide additional details about this forecasting activity (optional)"
+                            rows="3"
+                        >Quarterly demand forecasting for consumer electronics product line focusing on seasonal patterns and promotional impacts</textarea>
+                        <p class="form-description">
+                            Provide context, objectives, and any special requirements for this activity
+                        </p>
+                    </div>
+
+                    <!-- Industry and Priority -->
+                    <div class="form-grid form-grid--two-columns">
+                        <div class="form-field">
+                            <label for="industry-select" class="form-label">Industry</label>
+                            <select id="industry-select" class="form-select" data-bind="selectedIndustry">
+                                <option value="">Select industry (optional)</option>
+                                <option value="technology">Technology</option>
+                                <option value="retail">Retail</option>
+                                <option value="manufacturing">Manufacturing</option>
+                                <option value="healthcare">Healthcare</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="priority-select" class="form-label">Priority</label>
+                            <select id="priority-select" class="form-select" data-bind="selectedPriority">
+                                <option value="high">
+                                    High Priority
+                                </option>
+                                <option value="medium" selected>
+                                    Medium Priority
+                                </option>
+                                <option value="low">
+                                    Low Priority
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="section-separator"></div>
+
+                <!-- Advanced Options Section -->
+                <section class="advanced-options">
+                    <button 
+                        type="button" 
+                        class="advanced-options__toggle"
+                        data-click="toggleAdvancedOptions"
+                    >
+                        <svg class="advanced-options__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 18l6-6-6-6"/>
+                        </svg>
+                        Advanced Options
+                    </button>
+
+                    <div class="advanced-options__content ng-condition" data-show="showAdvancedOptions">
+                        <div class="form-grid form-grid--two-columns">
+                            <!-- Forecast Horizon -->
+                            <div class="form-field">
+                                <label for="forecast-horizon" class="form-label">
+                                    Default Forecast Horizon (days)
+                                </label>
+                                <input 
+                                    type="number" 
+                                    id="forecast-horizon" 
+                                    class="form-input" 
+                                    data-bind="forecastHorizon"
+                                    placeholder="90"
+                                    min="30"
+                                    max="365"
+                                    value="90"
+                                />
+                                <p class="form-description">
+                                    Set the default forecast horizon for this activity
+                                </p>
+                            </div>
+
+                            <!-- Workflow Configuration -->
+                            <div class="form-field">
+                                <label class="form-label">Workflow Configuration</label>
+                                <div class="checkbox-group">
+                                    <div class="checkbox-item">
+                                        <input 
+                                            type="checkbox" 
+                                            id="auto-start" 
+                                            class="checkbox-input"
+                                            data-bind="autoStartWorkflow"
+                                            checked
+                                        />
+                                        <label for="auto-start" class="checkbox-label">
+                                            Auto-start workflow after creation
+                                        </label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input 
+                                            type="checkbox" 
+                                            id="template-mode" 
+                                            class="checkbox-input"
+                                            data-bind="templateMode"
+                                        />
+                                        <label for="template-mode" class="checkbox-label">
+                                            Save as template for future use
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tags -->
+                        <div class="form-field">
+                            <label for="tags-input" class="form-label">Tags</label>
+                            <input 
+                                type="text" 
+                                id="tags-input" 
+                                class="form-input" 
+                                data-bind="tags"
+                                placeholder="Add tags separated by commas (e.g., quarterly, electronics, high-volume)"
+                                value="quarterly, electronics, seasonal, promotions"
+                            />
+                            <p class="form-description">
+                                Tags help organize and search activities later
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Dialog Footer -->
+                <footer class="dialog-footer">
+                    <div class="dialog-footer__info">
+                        <span class="required-asterisk">*</span> Required fields
+                    </div>
+                    <div class="dialog-footer__actions">
+                        <button 
+                            type="button" 
+                            class="btn btn--outline" 
+                            data-click="handleCancel"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="btn btn--primary ng-condition" 
+                            data-condition="isFormValid && !isCreating"
+                            data-click="handleSubmit"
+                        >
+                            <svg class="icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v14M5 12h14"/>
+                            </svg>
+                            Create Activity
+                        </button>
+                        <button 
+                            type="button" 
+                            class="btn btn--primary btn--loading ng-condition" 
+                            data-condition="isCreating"
+                            disabled
+                        >
+                            <div class="loading-spinner"></div>
+                            Creating...
+                        </button>
+                    </div>
+                </footer>
+            </form>
+        </div>
+    </div>
+
+    <!-- Background page content (blurred when modal is open) -->
+    <div style="filter: blur(2px); pointer-events: none;">
+        <div style="padding: 2rem; background: #f8fafc; min-height: 100vh;">
+            <h1 style="font-size: 24px; margin-bottom: 1rem;">Activity Dashboard</h1>
+            <p style="color: #64748b;">The Create Activity Dialog is currently open.</p>
+        </div>
+    </div>
+</body>
+</html>

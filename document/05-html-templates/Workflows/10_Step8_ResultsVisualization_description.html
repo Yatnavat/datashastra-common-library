@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 8: Results & Visualization - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #030213;
+            --color-secondary: #4A90E2;
+            --color-background: #ffffff;
+            --color-border: #e2e8f0;
+            --color-muted: #64748b;
+            --color-muted-foreground: #64748b;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            --color-blue-50: #eff6ff;
+            --color-blue-500: #3b82f6;
+            --color-blue-600: #2563eb;
+            --color-green-50: #f0fdf4;
+            --color-green-500: #22c55e;
+            --color-green-600: #16a34a;
+            --color-purple-50: #faf5ff;
+            --color-purple-500: #a855f7;
+            --color-purple-600: #9333ea;
+            --color-orange-50: #fff7ed;
+            --color-orange-500: #f97316;
+            --color-orange-600: #ea580c;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --radius: 0.5rem;
+            --chart-1: #3b82f6;
+            --chart-2: #10b981;
+            --chart-3: #f97316;
+            --chart-4: #a855f7;
+            --chart-5: #06b6d4;
+        }
+
+        /* ============================================
+           GLOBAL RESET AND BASE STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-primary);
+            background-color: var(--color-background);
+        }
+
+        /* ============================================
+           COMPONENT: ResultsVisualizationStep
+           Future: results-visualization-step.component.css
+           ============================================ */
+        .results-visualization-step {
+            padding: var(--spacing-lg);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .results-visualization-step__header {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .results-visualization-step__title {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .results-visualization-step__description {
+            color: var(--color-muted-foreground);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        /* ============================================
+           COMPONENT: ResultsSummaryHeader - RESULTS OVERVIEW DASHBOARD
+           Future: results-summary-header.component.css
+           ============================================ */
+        .results-summary-header {
+            background: linear-gradient(135deg, var(--color-green-50) 0%, var(--color-blue-50) 100%);
+            border: 2px solid var(--color-green-500);
+            border-radius: var(--radius);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .results-summary-header__content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .results-summary-header__info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .results-summary-header__icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-green-50);
+        }
+
+        .results-summary-header__details h2 {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .results-summary-header__badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--color-green-500);
+            color: white;
+        }
+
+        .results-summary-header__controls {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+
+        .results-summary-header__metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-xl);
+        }
+
+        .results-summary-header__metric {
+            text-align: center;
+        }
+
+        .results-summary-header__metric-value {
+            font-weight: bold;
+            font-size: 28px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .results-summary-header__metric-value--green {
+            color: var(--color-green-600);
+        }
+
+        .results-summary-header__metric-value--blue {
+            color: var(--color-blue-600);
+        }
+
+        .results-summary-header__metric-value--purple {
+            color: var(--color-purple-600);
+        }
+
+        .results-summary-header__metric-value--orange {
+            color: var(--color-orange-600);
+        }
+
+        .results-summary-header__metric-label {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+        }
+
+        /* ============================================
+           COMPONENT: ResultsTabs - TABBED INTERFACE with EXACT 4-TAB STRUCTURE
+           Future: results-tabs.component.css
+           ============================================ */
+        .results-tabs {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .results-tabs__header {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: 1px solid var(--color-border);
+            background: #f8fafc;
+        }
+
+        .results-tabs__tab {
+            padding: var(--spacing-lg);
+            text-align: center;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--color-muted-foreground);
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .results-tabs__tab:hover {
+            background: #e2e8f0;
+            color: var(--color-primary);
+        }
+
+        .results-tabs__tab--active {
+            background: white;
+            color: var(--color-primary);
+            border-bottom: 3px solid var(--color-primary);
+        }
+
+        .results-tabs__content {
+            min-height: 600px;
+            padding: var(--spacing-xl);
+        }
+
+        .results-tabs__panel {
+            display: none;
+        }
+
+        .results-tabs__panel--active {
+            display: block;
+        }
+
+        /* ============================================
+           COMPONENT: OverviewTab - EXECUTIVE SUMMARY INTERFACE
+           Future: overview-tab.component.css
+           ============================================ */
+        .overview-tab {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-xl);
+        }
+
+        .overview-tab__metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+            grid-column: 1 / -1;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .overview-tab__metric-card {
+            text-align: center;
+            padding: var(--spacing-xl);
+            border-radius: var(--radius);
+            border: 2px solid;
+        }
+
+        .overview-tab__metric-card--green {
+            background: var(--color-green-50);
+            border-color: var(--color-green-500);
+        }
+
+        .overview-tab__metric-card--blue {
+            background: var(--color-blue-50);
+            border-color: var(--color-blue-500);
+        }
+
+        .overview-tab__metric-card--purple {
+            background: var(--color-purple-50);
+            border-color: var(--color-purple-500);
+        }
+
+        .overview-tab__metric-card--orange {
+            background: var(--color-orange-50);
+            border-color: var(--color-orange-500);
+        }
+
+        .overview-tab__metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .overview-tab__metric-label {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .overview-tab__metric-description {
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+        }
+
+        .overview-tab__chart-section {
+            grid-column: 1 / -1;
+        }
+
+        .overview-tab__chart-container {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-xl);
+        }
+
+        .overview-tab__chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .overview-tab__chart-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .overview-tab__chart-description {
+            color: var(--color-muted-foreground);
+            margin-top: 4px;
+        }
+
+        .overview-tab__chart {
+            height: 400px;
+            background: #f8fafc;
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-muted-foreground);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .overview-tab__chart-legend {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .overview-tab__legend-items {
+            display: flex;
+            gap: var(--spacing-xl);
+        }
+
+        .overview-tab__legend-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 14px;
+        }
+
+        .overview-tab__legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .overview-tab__legend-color--blue {
+            background: var(--chart-1);
+        }
+
+        .overview-tab__legend-color--green {
+            background: var(--chart-2);
+            border: 2px solid var(--chart-2);
+            background: white;
+        }
+
+        .overview-tab__legend-color--orange {
+            background: var(--chart-3);
+            opacity: 0.6;
+        }
+
+        /* ============================================
+           COMPONENT: ForecastTab - DETAILED FORECAST VISUALIZATION
+           Future: forecast-tab.component.css
+           ============================================ */
+        .forecast-tab__chart-container {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .forecast-tab__chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .forecast-tab__chart-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .forecast-tab__chart-description {
+            color: var(--color-muted-foreground);
+            margin-top: 4px;
+        }
+
+        .forecast-tab__chart-controls {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+
+        .forecast-tab__chart {
+            height: 400px;
+            background: #f8fafc;
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-muted-foreground);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .forecast-tab__model-fit {
+            grid-column: 1 / -1;
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-xl);
+        }
+
+        .forecast-tab__model-fit-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .forecast-tab__model-fit-description {
+            color: var(--color-muted-foreground);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .forecast-tab__model-fit-chart {
+            height: 300px;
+            background: #f8fafc;
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           COMPONENT: PerformanceTab - MODEL PERFORMANCE ANALYSIS
+           Future: performance-tab.component.css
+           ============================================ */
+        .performance-tab__metrics-table {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .performance-tab__table-header {
+            background: #f8fafc;
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .performance-tab__table-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .performance-tab__table-description {
+            color: var(--color-muted-foreground);
+        }
+
+        .performance-tab__table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .performance-tab__table th {
+            background: #f8fafc;
+            padding: var(--spacing-md);
+            text-align: left;
+            font-weight: 500;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .performance-tab__table td {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .performance-tab__metric-value {
+            font-weight: 500;
+            color: var(--color-primary);
+        }
+
+        .performance-tab__grade-section {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-xl);
+            text-align: center;
+        }
+
+        .performance-tab__grade-header {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .performance-tab__grade-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .performance-tab__grade-description {
+            color: var(--color-muted-foreground);
+        }
+
+        .performance-tab__grade-display {
+            font-size: 72px;
+            font-weight: bold;
+            color: var(--color-blue-600);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .performance-tab__grade-label {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .performance-tab__grade-explanation {
+            color: var(--color-muted-foreground);
+            font-size: 16px;
+        }
+
+        /* ============================================
+           COMPONENT: InsightsTab - AI-GENERATED INSIGHTS INTERFACE
+           Future: insights-tab.component.css
+           ============================================ */
+        .insights-tab {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-xl);
+        }
+
+        .insights-tab__feature-importance {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .insights-tab__feature-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .insights-tab__feature-description {
+            color: var(--color-muted-foreground);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .insights-tab__feature-chart {
+            height: 300px;
+            background: #f8fafc;
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-muted-foreground);
+        }
+
+        .insights-tab__insights-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-xl);
+        }
+
+        .insights-tab__insights-section {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-xl);
+        }
+
+        .insights-tab__section-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .insights-tab__section-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .insights-tab__insight-item {
+            background: #f0fdf4;
+            border-left: 4px solid var(--color-green-500);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .insights-tab__insight-item--warning {
+            background: #fffbeb;
+            border-left-color: var(--color-orange-500);
+        }
+
+        .insights-tab__insight-title {
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+            color: var(--color-green-800);
+        }
+
+        .insights-tab__insight-title--warning {
+            color: var(--color-orange-800);
+        }
+
+        .insights-tab__insight-description {
+            font-size: 14px;
+            color: var(--color-green-700);
+            line-height: 1.4;
+        }
+
+        .insights-tab__insight-description--warning {
+            color: var(--color-orange-700);
+        }
+
+        .insights-tab__recommendation-item {
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .insights-tab__recommendation-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .insights-tab__recommendation-number {
+            width: 24px;
+            height: 24px;
+            background: var(--color-blue-500);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .insights-tab__recommendation-title {
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .insights-tab__recommendation-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .insights-tab__recommendation-badge--high {
+            background: var(--color-green-100);
+            color: var(--color-green-800);
+        }
+
+        .insights-tab__recommendation-description {
+            font-size: 14px;
+            color: var(--color-muted-foreground);
+            line-height: 1.4;
+        }
+
+        /* ============================================
+           COMPONENT: Button
+           Future: button.component.css
+           ============================================ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            padding: 8px 16px;
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn--primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn--primary:hover:not(:disabled) {
+            background: #1e293b;
+        }
+
+        .btn--outline {
+            background: white;
+            color: var(--color-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn--outline:hover:not(:disabled) {
+            background: #f8fafc;
+        }
+
+        .btn--sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        /* ============================================
+           COMPONENT: Select
+           Future: select.component.css
+           ============================================ */
+        .select {
+            position: relative;
+            display: inline-block;
+        }
+
+        .select__trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            background: white;
+            cursor: pointer;
+            min-width: 140px;
+            font-size: 14px;
+        }
+
+        .select__trigger:hover {
+            background: #f8fafc;
+        }
+
+        /* ============================================
+           COMPONENT: ActionButtons
+           Future: action-buttons.component.css
+           ============================================ */
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: var(--spacing-xl);
+            border-top: 1px solid var(--color-border);
+            margin-top: var(--spacing-xl);
+        }
+
+        .action-buttons__info {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+        }
+
+        .action-buttons__controls {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+
+        /* Mobile-first responsive design */
+        @media (max-width: 768px) {
+            .results-visualization-step {
+                padding: var(--spacing-md);
+            }
+
+            .results-summary-header__content {
+                flex-direction: column;
+                gap: var(--spacing-md);
+            }
+
+            .results-summary-header__metrics {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-md);
+            }
+
+            .results-tabs__header {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .results-tabs__tab {
+                flex-direction: column;
+                padding: var(--spacing-md);
+                gap: 4px;
+            }
+
+            .overview-tab {
+                grid-template-columns: 1fr;
+            }
+
+            .overview-tab__metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .insights-tab__insights-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: var(--spacing-md);
+                text-align: center;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .results-visualization-step {
+                padding: var(--spacing-xl);
+            }
+
+            .results-tabs__header {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         COMPONENT: ResultsVisualizationStep
+         Angular: app-results-visualization-step selector
+         INPUTS: @Input() resultsData: ResultsData
+         INPUTS: @Input() forecastData: ForecastData
+         INPUTS: @Input() performanceData: PerformanceData
+         INPUTS: @Input() insightsData: InsightsData
+         OUTPUTS: @Output() exportResults: EventEmitter<ExportOptions>
+         OUTPUTS: @Output() shareResults: EventEmitter<ShareOptions>
+         OUTPUTS: @Output() createNewForecast: EventEmitter<void>
+         SERVICE: ResultsService, ExportService, InsightsService
+         ============================================ -->
+    <div class="results-visualization-step">
+        <!-- ============================================
+             COMPONENT: ResultsStepHeader
+             Angular: app-results-step-header selector
+             ============================================ -->
+        <header class="results-visualization-step__header">
+            <h1 class="results-visualization-step__title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+                </svg>
+                XGBoost Results & Analysis
+            </h1>
+            <p class="results-visualization-step__description">Comprehensive analysis of your XGBoost forecasting model performance</p>
+        </header>
+
+        <!-- ============================================
+             COMPONENT: ResultsSummaryHeader - RESULTS OVERVIEW DASHBOARD
+             Angular: app-results-summary-header selector
+             INPUTS: @Input() summaryData: ResultsSummary
+             OUTPUTS: @Output() exportResults: EventEmitter<void>
+             OUTPUTS: @Output() shareResults: EventEmitter<void>
+             SERVICE: ResultsSummaryService
+             ============================================ -->
+        <div class="results-summary-header">
+            <div class="results-summary-header__content">
+                <div class="results-summary-header__info">
+                    <div class="results-summary-header__icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+                            <path d="m9 12 2 2 4-4"/>
+                            <circle cx="12" cy="12" r="9"/>
+                        </svg>
+                    </div>
+                    <div class="results-summary-header__details">
+                        <h2>
+                            Model Training Completed Successfully
+                            <span class="results-summary-header__badge">Success</span>
+                        </h2>
+                        <p>XGBoost achieved 88.1% accuracy in 8.5 seconds. Ready for forecasting and deployment.</p>
+                    </div>
+                </div>
+                
+                <div class="results-summary-header__controls">
+                    <button class="btn btn--outline" data-click="exportResults">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7,10 12,15 17,10"/>
+                            <line x1="12" x2="12" y1="15" y2="3"/>
+                        </svg>
+                        Export Results
+                    </button>
+                    <button class="btn btn--outline" data-click="shareResults">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                            <polyline points="16,6 12,2 8,6"/>
+                            <line x1="12" x2="12" y1="2" y2="15"/>
+                        </svg>
+                        Share Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Summary Metrics -->
+            <div class="results-summary-header__metrics">
+                <div class="results-summary-header__metric">
+                    <div class="results-summary-header__metric-value results-summary-header__metric-value--green">88.1%</div>
+                    <div class="results-summary-header__metric-label">Model Accuracy</div>
+                    <div class="results-summary-header__metric-label">Overall performance</div>
+                </div>
+                <div class="results-summary-header__metric">
+                    <div class="results-summary-header__metric-value results-summary-header__metric-value--blue">11.2%</div>
+                    <div class="results-summary-header__metric-label">MAPE</div>
+                    <div class="results-summary-header__metric-label">Prediction error</div>
+                </div>
+                <div class="results-summary-header__metric">
+                    <div class="results-summary-header__metric-value results-summary-header__metric-value--purple">8.5s</div>
+                    <div class="results-summary-header__metric-label">Training Time</div>
+                    <div class="results-summary-header__metric-label">Execution speed</div>
+                </div>
+                <div class="results-summary-header__metric">
+                    <div class="results-summary-header__metric-value results-summary-header__metric-value--orange">0.92</div>
+                    <div class="results-summary-header__metric-label">R-squared</div>
+                    <div class="results-summary-header__metric-label">Goodness of fit</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Summary -->
+        <div class="results-summary-header" style="background: #f8fafc; border-color: #e2e8f0;">
+            <div style="padding: 0; margin: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                    <div>
+                        <strong>Forecast Horizon:</strong> <span style="margin-left: var(--spacing-sm);">30 days</span>
+                        <span style="margin-left: var(--spacing-lg); color: var(--color-muted-foreground);">(configured in Aggregation step)</span>
+                    </div>
+                    <div>
+                        <strong>Confidence Intervals:</strong> <span style="background: var(--color-primary); color: white; padding: 2px 8px; border-radius: 4px; margin-left: var(--spacing-sm);">Enabled</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================
+             COMPONENT: ResultsTabs - TABBED INTERFACE with EXACT 4-TAB STRUCTURE
+             Angular: app-results-tabs selector
+             TAB SEQUENCE: Overview → Forecast → Performance → Insights
+             INPUTS: @Input() activeTab: string
+             OUTPUTS: @Output() tabChange: EventEmitter<string>
+             SERVICE: ResultsTabsService
+             ============================================ -->
+        <div class="results-tabs">
+            <div class="results-tabs__header">
+                <button class="results-tabs__tab results-tabs__tab--active" 
+                        data-click="switchTab" data-tab="overview">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+                    </svg>
+                    <span>Overview</span>
+                </button>
+                <button class="results-tabs__tab" 
+                        data-click="switchTab" data-tab="forecast">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+                    </svg>
+                    <span>Forecast</span>
+                </button>
+                <button class="results-tabs__tab" 
+                        data-click="switchTab" data-tab="performance">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <circle cx="12" cy="12" r="6"/>
+                        <circle cx="12" cy="12" r="2"/>
+                    </svg>
+                    <span>Performance</span>
+                </button>
+                <button class="results-tabs__tab" 
+                        data-click="switchTab" data-tab="insights">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m15 14 5-5-5-5"/>
+                        <path d="m4 14 5-5-5-5"/>
+                        <path d="m9 22 3-3 3 3"/>
+                        <path d="m15 22-3-3-3 3"/>
+                    </svg>
+                    <span>Insights</span>
+                </button>
+            </div>
+
+            <div class="results-tabs__content">
+                <!-- ============================================
+                     TAB PANEL: Overview - EXECUTIVE SUMMARY INTERFACE
+                     Angular: app-overview-tab selector
+                     INPUTS: @Input() performanceMetrics: PerformanceMetrics
+                     INPUTS: @Input() forecastSummary: ForecastSummary
+                     SERVICE: OverviewTabService
+                     ============================================ -->
+                <div class="results-tabs__panel results-tabs__panel--active" data-tab-panel="overview">
+                    <div class="overview-tab">
+                        <!-- Performance Metrics Grid -->
+                        <div class="overview-tab__metrics">
+                            <div class="overview-tab__metric-card overview-tab__metric-card--green">
+                                <div class="overview-tab__metric-value" style="color: var(--color-green-600);">88.1%</div>
+                                <div class="overview-tab__metric-label">Overall Accuracy</div>
+                                <div class="overview-tab__metric-description">Primary performance metric</div>
+                            </div>
+                            
+                            <div class="overview-tab__metric-card overview-tab__metric-card--blue">
+                                <div class="overview-tab__metric-value" style="color: var(--color-blue-600);">10.09</div>
+                                <div class="overview-tab__metric-label">MAE</div>
+                                <div class="overview-tab__metric-description">Mean Absolute Error</div>
+                            </div>
+                            
+                            <div class="overview-tab__metric-card overview-tab__metric-card--purple">
+                                <div class="overview-tab__metric-value" style="color: var(--color-purple-600);">15.97</div>
+                                <div class="overview-tab__metric-label">RMSE</div>
+                                <div class="overview-tab__metric-description">Root Mean Square Error</div>
+                            </div>
+                            
+                            <div class="overview-tab__metric-card overview-tab__metric-card--orange">
+                                <div class="overview-tab__metric-value" style="color: var(--color-orange-600);">0.920</div>
+                                <div class="overview-tab__metric-label">R²</div>
+                                <div class="overview-tab__metric-description">Coefficient of Determination</div>
+                            </div>
+                        </div>
+
+                        <!-- Model Information Panel -->
+                        <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--spacing-xl);">
+                            <h3 style="font-size: 18px; font-weight: 500; margin-bottom: var(--spacing-lg);">Model Performance Summary</h3>
+                            <p style="color: var(--color-muted-foreground); margin-bottom: var(--spacing-lg);">Key performance metrics and statistics</p>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacing-lg);">
+                                <div style="text-align: center; padding: var(--spacing-lg); background: var(--color-green-50); border-radius: var(--radius);">
+                                    <div style="font-size: 24px; font-weight: bold; color: var(--color-green-600); margin-bottom: var(--spacing-sm);">10.09</div>
+                                    <div style="font-weight: 500;">MAE</div>
+                                </div>
+                                <div style="text-align: center; padding: var(--spacing-lg); background: var(--color-blue-50); border-radius: var(--radius);">
+                                    <div style="font-size: 24px; font-weight: bold; color: var(--color-blue-600); margin-bottom: var(--spacing-sm);">15.97</div>
+                                    <div style="font-weight: 500;">RMSE</div>
+                                </div>
+                                <div style="text-align: center; padding: var(--spacing-lg); background: var(--color-purple-50); border-radius: var(--radius);">
+                                    <div style="font-size: 24px; font-weight: bold; color: var(--color-purple-600); margin-bottom: var(--spacing-sm);">11.2%</div>
+                                    <div style="font-weight: 500;">MAPE</div>
+                                </div>
+                                <div style="text-align: center; padding: var(--spacing-lg); background: var(--color-orange-50); border-radius: var(--radius);">
+                                    <div style="font-size: 24px; font-weight: bold; color: var(--color-orange-600); margin-bottom: var(--spacing-sm);">0.920</div>
+                                    <div style="font-weight: 500;">R²</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Model Information Panel -->
+                        <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--spacing-xl);">
+                            <h3 style="font-size: 18px; font-weight: 500; margin-bottom: var(--spacing-lg);">Model Information</h3>
+                            <p style="color: var(--color-muted-foreground); margin-bottom: var(--spacing-lg);">Configuration and execution details</p>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg);">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; padding: var(--spacing-md) 0; border-bottom: 1px solid #f1f5f9;">
+                                        <span style="color: var(--color-muted-foreground);">Model Type:</span>
+                                        <span style="font-weight: 500;">XGBoost</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; padding: var(--spacing-md) 0; border-bottom: 1px solid #f1f5f9;">
+                                        <span style="color: var(--color-muted-foreground);">Training Time:</span>
+                                        <span style="font-weight: 500;">8.5 seconds</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; padding: var(--spacing-md) 0; border-bottom: 1px solid #f1f5f9;">
+                                        <span style="color: var(--color-muted-foreground);">Forecast Horizon:</span>
+                                        <span style="font-weight: 500;">30 days</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; padding: var(--spacing-md) 0; border-bottom: 1px solid #f1f5f9;">
+                                        <span style="color: var(--color-muted-foreground);">Features Used:</span>
+                                        <span style="font-weight: 500;">6</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: var(--spacing-lg); padding: var(--spacing-lg); background: #f8fafc; border-radius: var(--radius);">
+                                <h4 style="font-weight: 500; margin-bottom: var(--spacing-md);">Hyperparameters:</h4>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-md); font-size: 14px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--color-muted-foreground);">learning_rate:</span>
+                                        <span>0.1</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--color-muted-foreground);">max_depth:</span>
+                                        <span>6</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--color-muted-foreground);">n_estimators:</span>
+                                        <span>100</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Historical Model Fit Chart -->
+                        <div class="overview-tab__chart-section">
+                            <div class="overview-tab__chart-container">
+                                <div class="overview-tab__chart-header">
+                                    <div>
+                                        <h3 class="overview-tab__chart-title">Historical Model Fit</h3>
+                                        <p class="overview-tab__chart-description">How well the model fits historical data (last 30 days)</p>
+                                    </div>
+                                </div>
+
+                                <div class="overview-tab__chart">
+                                    <div style="text-align: center;">
+                                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted-foreground)" stroke-width="1">
+                                            <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+                                        </svg>
+                                        <div style="margin-top: var(--spacing-md);">
+                                            Interactive Historical vs Predicted Chart<br>
+                                            <small>Shows model accuracy over historical data period</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="overview-tab__chart-legend">
+                                    <div class="overview-tab__legend-items">
+                                        <div class="overview-tab__legend-item">
+                                            <div class="overview-tab__legend-color overview-tab__legend-color--blue"></div>
+                                            <span>Actual Values</span>
+                                        </div>
+                                        <div class="overview-tab__legend-item">
+                                            <div class="overview-tab__legend-color overview-tab__legend-color--green"></div>
+                                            <span>Model Predictions</span>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 14px; color: var(--color-muted-foreground);">
+                                        Model fit accuracy across historical period
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================
+                     TAB PANEL: Forecast - DETAILED FORECAST VISUALIZATION
+                     Angular: app-forecast-tab selector
+                     INPUTS: @Input() forecastData: ForecastData[]
+                     INPUTS: @Input() confidenceIntervals: ConfidenceData[]
+                     OUTPUTS: @Output() exportChart: EventEmitter<void>
+                     SERVICE: ForecastVisualizationService
+                     ============================================ -->
+                <div class="results-tabs__panel" data-tab-panel="forecast">
+                    <div class="forecast-tab__chart-container">
+                        <div class="forecast-tab__chart-header">
+                            <div>
+                                <h3 class="forecast-tab__chart-title">Demand Forecast</h3>
+                                <p class="forecast-tab__chart-description">XGBoost predictions for the next 30 days</p>
+                            </div>
+                            <div class="forecast-tab__chart-controls">
+                                <div class="select">
+                                    <div class="select__trigger" data-select="series">
+                                        <span>All Series</span>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="6,9 12,15 18,9"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <button class="btn btn--outline btn--sm" data-click="exportChart">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7,10 12,15 17,10"/>
+                                        <line x1="12" x2="12" y1="15" y2="3"/>
+                                    </svg>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="forecast-tab__chart">
+                            <div style="text-align: center;">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted-foreground)" stroke-width="1">
+                                    <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+                                </svg>
+                                <div style="margin-top: var(--spacing-md);">
+                                    Interactive Forecast Chart with Confidence Intervals<br>
+                                    <small>30-day forecast with upper and lower bounds</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="overview-tab__chart-legend">
+                            <div class="overview-tab__legend-items">
+                                <div class="overview-tab__legend-item">
+                                    <div style="width: 16px; height: 2px; background: var(--chart-1);"></div>
+                                    <span>Confidence Interval</span>
+                                </div>
+                                <div class="overview-tab__legend-item">
+                                    <div style="width: 16px; height: 2px; background: var(--chart-2); border: 2px dashed var(--chart-2); background: white;"></div>
+                                    <span>Forecast</span>
+                                </div>
+                                <div class="overview-tab__legend-item">
+                                    <div style="width: 16px; height: 2px; background: var(--chart-3);"></div>
+                                    <span>Lower Bound</span>
+                                </div>
+                                <div class="overview-tab__legend-item">
+                                    <div style="width: 16px; height: 2px; background: var(--chart-3);"></div>
+                                    <span>Upper Bound</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Forecast Summary Statistics -->
+                    <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--spacing-xl);">
+                        <h3 style="font-size: 18px; font-weight: 500; margin-bottom: var(--spacing-md);">Forecast Summary Statistics</h3>
+                        <p style="color: var(--color-muted-foreground); margin-bottom: var(--spacing-lg);">Key statistics for the 30 days forecast period</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-xl);">
+                            <div style="text-center;">
+                                <div style="font-size: 28px; font-weight: bold; margin-bottom: var(--spacing-sm);">127</div>
+                                <div style="color: var(--color-muted-foreground);">Average Demand</div>
+                            </div>
+                            <div style="text-center;">
+                                <div style="font-size: 28px; font-weight: bold; margin-bottom: var(--spacing-sm);">169</div>
+                                <div style="color: var(--color-muted-foreground);">Peak Demand</div>
+                            </div>
+                            <div style="text-center;">
+                                <div style="font-size: 28px; font-weight: bold; margin-bottom: var(--spacing-sm);">95</div>
+                                <div style="color: var(--color-muted-foreground);">Minimum Demand</div>
+                            </div>
+                            <div style="text-center;">
+                                <div style="font-size: 28px; font-weight: bold; margin-bottom: var(--spacing-sm);">3802</div>
+                                <div style="color: var(--color-muted-foreground);">Total Demand</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================
+                     TAB PANEL: Performance - MODEL PERFORMANCE ANALYSIS
+                     Angular: app-performance-tab selector
+                     INPUTS: @Input() performanceMetrics: PerformanceMetrics
+                     INPUTS: @Input() validationResults: ValidationResults
+                     SERVICE: PerformanceAnalysisService
+                     ============================================ -->
+                <div class="results-tabs__panel" data-tab-panel="performance">
+                    <div class="performance-tab__metrics-table">
+                        <div class="performance-tab__table-header">
+                            <h3 class="performance-tab__table-title">Detailed Performance Metrics</h3>
+                            <p class="performance-tab__table-description">Comprehensive evaluation of model performance</p>
+                        </div>
+                        
+                        <table class="performance-tab__table">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Value</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody class="ng-repeat-item" data-repeat="performanceMetrics">
+                                <tr>
+                                    <td><strong>Mean Absolute Error</strong></td>
+                                    <td class="performance-tab__metric-value">10.09</td>
+                                    <td style="color: var(--color-muted-foreground);">Lower values indicate better performance</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Root Mean Square Error</strong></td>
+                                    <td class="performance-tab__metric-value">15.97</td>
+                                    <td style="color: var(--color-muted-foreground);">Lower values indicate better performance</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Mean Absolute Percentage Error</strong></td>
+                                    <td class="performance-tab__metric-value">11.2%</td>
+                                    <td style="color: var(--color-muted-foreground);">Percentage error in predictions</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>R-squared</strong></td>
+                                    <td class="performance-tab__metric-value">0.920</td>
+                                    <td style="color: var(--color-muted-foreground);">Higher values indicate better fit (0-1)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>AIC</strong></td>
+                                    <td class="performance-tab__metric-value">1337</td>
+                                    <td style="color: var(--color-muted-foreground);">Information criterion for model selection</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>BIC</strong></td>
+                                    <td class="performance-tab__metric-value">1386</td>
+                                    <td style="color: var(--color-muted-foreground);">Information criterion for model selection</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="performance-tab__grade-section">
+                        <div class="performance-tab__grade-header">
+                            <h3 class="performance-tab__grade-title">Performance Grade</h3>
+                            <p class="performance-tab__grade-description">Overall model assessment based on accuracy metrics</p>
+                        </div>
+
+                        <div class="performance-tab__grade-display">B</div>
+                        <div class="performance-tab__grade-label">Good Performance</div>
+                        <p class="performance-tab__grade-explanation">Good accuracy. Suitable for most forecasting needs.</p>
+                    </div>
+                </div>
+
+                <!-- ============================================
+                     TAB PANEL: Insights - AI-GENERATED INSIGHTS INTERFACE
+                     Angular: app-insights-tab selector
+                     INPUTS: @Input() featureImportance: FeatureImportance[]
+                     INPUTS: @Input() generatedInsights: Insight[]
+                     INPUTS: @Input() recommendations: Recommendation[]
+                     SERVICE: InsightsGenerationService
+                     ============================================ -->
+                <div class="results-tabs__panel" data-tab-panel="insights">
+                    <div class="insights-tab">
+                        <!-- Feature Importance Chart -->
+                        <div class="insights-tab__feature-importance">
+                            <h3 class="insights-tab__feature-title">Feature Importance</h3>
+                            <p class="insights-tab__feature-description">Which features contribute most to the predictions</p>
+                            
+                            <div class="insights-tab__feature-chart">
+                                <div style="text-align: center;">
+                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted-foreground)" stroke-width="1">
+                                        <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+                                    </svg>
+                                    <div style="margin-top: var(--spacing-md);">
+                                        Feature Importance Horizontal Bar Chart<br>
+                                        <small>Category, Holiday, Price, Seasonal Month, Rolling Mean 7, Lag 1</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Insights Grid -->
+                        <div class="insights-tab__insights-grid">
+                            <!-- Key Insights -->
+                            <div class="insights-tab__insights-section">
+                                <div class="insights-tab__section-header">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-green-600)" stroke-width="2">
+                                        <path d="m9 12 2 2 4-4"/>
+                                        <circle cx="12" cy="12" r="9"/>
+                                    </svg>
+                                    <h4 class="insights-tab__section-title">Key Insights</h4>
+                                </div>
+                                <p style="color: var(--color-muted-foreground); margin-bottom: var(--spacing-lg); font-size: 14px;">Important findings from the analysis</p>
+
+                                <div class="insights-tab__insight-item">
+                                    <h5 class="insights-tab__insight-title">Model Performance</h5>
+                                    <p class="insights-tab__insight-description">XGBoost achieved 88.1% accuracy, which is good for most applications.</p>
+                                </div>
+
+                                <div class="insights-tab__insight-item" style="background: #f0fdf4; border-left-color: var(--color-green-500);">
+                                    <h5 class="insights-tab__insight-title">Training Efficiency</h5>
+                                    <p class="insights-tab__insight-description">Model training completed in 8.5 seconds, indicating fast training speed.</p>
+                                </div>
+
+                                <div class="insights-tab__insight-item" style="background: #faf5ff; border-left-color: var(--color-purple-500);">
+                                    <h5 class="insights-tab__insight-title" style="color: var(--color-purple-800);">Prediction Quality</h5>
+                                    <p class="insights-tab__insight-description" style="color: var(--color-purple-700);">MAPE of 11.2% suggests good prediction quality.</p>
+                                </div>
+                            </div>
+
+                            <!-- Recommendations -->
+                            <div class="insights-tab__insights-section">
+                                <div class="insights-tab__section-header">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-blue-600)" stroke-width="2">
+                                        <path d="m15 14 5-5-5-5"/>
+                                        <path d="m4 14 5-5-5-5"/>
+                                        <path d="m9 22 3-3 3 3"/>
+                                        <path d="m15 22-3-3-3 3"/>
+                                    </svg>
+                                    <h4 class="insights-tab__section-title">Recommendations</h4>
+                                </div>
+                                <p style="color: var(--color-muted-foreground); margin-bottom: var(--spacing-lg); font-size: 14px;">Suggestions for next steps</p>
+
+                                <div class="insights-tab__recommendation-item ng-repeat-item" data-repeat="recommendations">
+                                    <div class="insights-tab__recommendation-header">
+                                        <div style="width: 24px; height: 24px; background: var(--color-green-500); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="m9 12 2 2 4-4"/>
+                                            </svg>
+                                        </div>
+                                        <h5 class="insights-tab__recommendation-title">Deploy to Production</h5>
+                                        <div class="insights-tab__recommendation-badge insights-tab__recommendation-badge--high">Ready</div>
+                                    </div>
+                                    <p class="insights-tab__recommendation-description">Model shows excellent performance and is ready for production use.</p>
+                                </div>
+
+                                <div class="insights-tab__recommendation-item">
+                                    <div class="insights-tab__recommendation-header">
+                                        <div style="width: 24px; height: 24px; background: var(--color-blue-500); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="3"/>
+                                                <path d="M12 1v6m0 6v6"/>
+                                                <path d="m21 12-6 0m-6 0-6 0"/>
+                                            </svg>
+                                        </div>
+                                        <h5 class="insights-tab__recommendation-title">Monitor Performance</h5>
+                                        <div class="insights-tab__recommendation-badge" style="background: var(--color-blue-100); color: var(--color-blue-800);">Ongoing</div>
+                                    </div>
+                                    <p class="insights-tab__recommendation-description">Set up regular model performance monitoring and retraining schedules.</p>
+                                </div>
+
+                                <div class="insights-tab__recommendation-item">
+                                    <div class="insights-tab__recommendation-header">
+                                        <div style="width: 24px; height: 24px; background: var(--color-purple-500); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                <polyline points="14,2 14,8 20,8"/>
+                                                <line x1="16" x2="8" y1="13" y2="13"/>
+                                                <line x1="16" x2="8" y1="17" y2="17"/>
+                                                <polyline points="10,9 9,9 8,9"/>
+                                            </svg>
+                                        </div>
+                                        <h5 class="insights-tab__recommendation-title">Document Results</h5>
+                                        <div class="insights-tab__recommendation-badge" style="background: var(--color-purple-100); color: var(--color-purple-800);">Important</div>
+                                    </div>
+                                    <p class="insights-tab__recommendation-description">Export and document these results for stakeholder review and future reference.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================
+             COMPONENT: ActionButtons
+             Angular: app-action-buttons selector
+             OUTPUTS: @Output() exportReport: EventEmitter<void>
+             OUTPUTS: @Output() createNewForecast: EventEmitter<void>
+             ============================================ -->
+        <div class="action-buttons">
+            <div class="action-buttons__info">
+                Analysis completed • XGBoost • 9/18/2025
+            </div>
+            <div class="action-buttons__controls">
+                <button class="btn btn--outline" data-click="exportReport">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7,10 12,15 17,10"/>
+                        <line x1="12" x2="12" y1="15" y2="3"/>
+                    </svg>
+                    Export Report
+                </button>
+                <button class="btn btn--primary" data-click="createNewForecast">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m15 14 5-5-5-5"/>
+                        <path d="m4 14 5-5-5-5"/>
+                        <path d="m9 22 3-3 3 3"/>
+                        <path d="m15 22-3-3-3 3"/>
+                    </svg>
+                    Create New Forecast
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         COMPONENT DATA STRUCTURES AND INTERFACES
+         ============================================ -->
+    <!--
+    TypeScript Interfaces:
+    ======================
+    interface ResultsSummary {
+        trainingStatus: 'completed' | 'failed' | 'partial';
+        completionTime: string;
+        overallAccuracy: number;
+        forecastHorizon: number;
+        totalDataPoints: number;
+        trainingDuration: string;
+        selectedModel: {
+            name: string;
+            version: string;
+            configuration: object;
+        };
+    }
+
+    interface ForecastResults {
+        forecastPeriod: {
+            start: string;
+            end: string;
+        };
+        forecastData: Array<{
+            date: string;
+            forecast: number;
+            lower80: number;
+            upper80: number;
+            lower95: number;
+            upper95: number;
+        }>;
+        seasonalComponents: {
+            trend: number[];
+            seasonal: number[];
+            residuals: number[];
+        };
+        summaryStatistics: {
+            meanForecast: number;
+            forecastVariance: number;
+            confidenceWidth: {
+                '80percent': number;
+                '95percent': number;
+            };
+        };
+    }
+
+    interface PerformanceMetrics {
+        overallMetrics: {
+            mae: number;
+            rmse: number;
+            r2: number;
+            mape: number;
+            aic?: number;
+            bic?: number;
+        };
+        crossValidationResults: {
+            folds: number;
+            foldResults: Array<{
+                foldId: number;
+                mae: number;
+                rmse: number;
+                r2: number;
+                trainingSize: number;
+                validationSize: number;
+            }>;
+            aggregateResults: {
+                meanMAE: number;
+                stdMAE: number;
+                meanRMSE: number;
+                stdRMSE: number;
+                meanR2: number;
+                stdR2: number;
+            };
+        };
+        residualAnalysis: {
+            residualStatistics: {
+                mean: number;
+                standardDeviation: number;
+                skewness: number;
+                kurtosis: number;
+            };
+            residualData: Array<{
+                fitted: number;
+                residual: number;
+            }>;
+        };
+        modelComparison: Array<{
+            name: string;
+            mae: number;
+            rmse: number;
+            r2: number;
+            accuracy: number;
+            isSelected?: boolean;
+            isBaseline?: boolean;
+        }>;
+        featureImportance: Array<{
+            feature: string;
+            importance: number;
+            rank: number;
+        }>;
+        performanceGrade: {
+            grade: string;
+            score: number;
+            description: string;
+        };
+    }
+
+    interface GeneratedInsights {
+        positiveInsights: Array<{
+            id: string;
+            title: string;
+            description: string;
+            category: string;
+            confidence: number;
+            impact: string;
+        }>;
+        warningInsights: Array<{
+            id: string;
+            title: string;
+            description: string;
+            category: string;
+            confidence: number;
+            priority: string;
+        }>;
+        businessRecommendations: Array<{
+            id: string;
+            title: string;
+            description: string;
+            impact: 'High' | 'Medium' | 'Low';
+            effort: 'High' | 'Medium' | 'Low';
+            timeline: string;
+            actions?: string[];
+        }>;
+        riskFactors: Array<{
+            id: string;
+            title: string;
+            description: string;
+            severity: 'High' | 'Medium' | 'Low';
+            probability: string;
+            category: string;
+        }>;
+    }
+
+    interface ExportOptions {
+        format: 'pdf' | 'excel' | 'csv' | 'json';
+        components: string[];
+        includeCharts: boolean;
+        includeRawData: boolean;
+    }
+
+    Sample Data:
+    ============
+    const sampleResultsData = {
+        resultsSummary: {
+            trainingStatus: 'completed',
+            completionTime: '2024-01-20T19:45:23Z',
+            overallAccuracy: 88.1,
+            forecastHorizon: 30,
+            totalDataPoints: 12570,
+            trainingDuration: '8.5 seconds',
+            selectedModel: {
+                name: 'XGBoost',
+                version: '1.6.2',
+                configuration: {
+                    learning_rate: 0.1,
+                    max_depth: 6,
+                    n_estimators: 100
+                }
+            }
+        },
+        performanceMetrics: {
+            overallMetrics: {
+                mae: 10.09,
+                rmse: 15.97,
+                r2: 0.920,
+                mape: 11.2,
+                aic: 1337,
+                bic: 1386
+            },
+            performanceGrade: {
+                grade: 'B',
+                score: 88.1,
+                description: 'Good Performance - Good accuracy. Suitable for most forecasting needs.'
+            }
+        },
+        forecastSummaryStats: {
+            averageDemand: 127,
+            peakDemand: 169,
+            minimumDemand: 95,
+            totalDemand: 3802
+        },
+        generatedInsights: {
+            positiveInsights: [
+                {
+                    id: 'insight_001',
+                    title: 'Model Performance',
+                    description: 'XGBoost achieved 88.1% accuracy, which is good for most applications.',
+                    category: 'performance',
+                    confidence: 0.95,
+                    impact: 'high'
+                },
+                {
+                    id: 'insight_002',
+                    title: 'Training Efficiency',
+                    description: 'Model training completed in 8.5 seconds, indicating fast training speed.',
+                    category: 'efficiency',
+                    confidence: 0.98,
+                    impact: 'medium'
+                },
+                {
+                    id: 'insight_003',
+                    title: 'Prediction Quality',
+                    description: 'MAPE of 11.2% suggests good prediction quality.',
+                    category: 'quality',
+                    confidence: 0.92,
+                    impact: 'high'
+                }
+            ],
+            businessRecommendations: [
+                {
+                    id: 'rec_001',
+                    title: 'Deploy to Production',
+                    description: 'Model shows excellent performance and is ready for production use.',
+                    impact: 'High',
+                    effort: 'Low',
+                    timeline: '1-2 weeks'
+                },
+                {
+                    id: 'rec_002',
+                    title: 'Monitor Performance',
+                    description: 'Set up regular model performance monitoring and retraining schedules.',
+                    impact: 'Medium',
+                    effort: 'Medium',
+                    timeline: '2-4 weeks'
+                },
+                {
+                    id: 'rec_003',
+                    title: 'Document Results',
+                    description: 'Export and document these results for stakeholder review and future reference.',
+                    impact: 'Medium',
+                    effort: 'Low',
+                    timeline: '1 week'
+                }
+            ]
+        }
+    };
+    -->
+
+    <script>
+        // ============================================
+        // SAMPLE INTERACTION HANDLERS (Angular will replace)
+        // ============================================
+        
+        // Tab switching functionality
+        document.addEventListener('click', function(e) {
+            if (e.target.hasAttribute('data-tab') || e.target.closest('[data-tab]')) {
+                const tabElement = e.target.hasAttribute('data-tab') ? e.target : e.target.closest('[data-tab]');
+                const targetTab = tabElement.getAttribute('data-tab');
+                
+                // Update active tab
+                document.querySelectorAll('.results-tabs__tab').forEach(tab => {
+                    tab.classList.remove('results-tabs__tab--active');
+                });
+                tabElement.classList.add('results-tabs__tab--active');
+                
+                // Update active panel
+                document.querySelectorAll('.results-tabs__panel').forEach(panel => {
+                    panel.classList.remove('results-tabs__panel--active');
+                });
+                const targetPanel = document.querySelector(`[data-tab-panel="${targetTab}"]`);
+                if (targetPanel) {
+                    targetPanel.classList.add('results-tabs__panel--active');
+                }
+            }
+        });
+
+        // Sample export functionality
+        document.addEventListener('click', function(e) {
+            if (e.target.hasAttribute('data-click')) {
+                const action = e.target.getAttribute('data-click');
+                switch(action) {
+                    case 'exportResults':
+                    case 'exportReport':
+                        console.log('Exporting results...');
+                        // Angular will handle actual export
+                        break;
+                    case 'shareResults':
+                        console.log('Sharing results...');
+                        // Angular will handle actual sharing
+                        break;
+                    case 'createNewForecast':
+                        console.log('Creating new forecast...');
+                        // Angular will navigate to new forecast
+                        break;
+                    case 'exportChart':
+                        console.log('Exporting chart...');
+                        // Angular will handle chart export
+                        break;
+                }
+            }
+        });
+
+        // Sample select functionality
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('[data-select]')) {
+                const selectElement = e.target.closest('[data-select]');
+                const selectType = selectElement.getAttribute('data-select');
+                console.log(`Opening ${selectType} select dropdown`);
+                // Angular will handle actual select functionality
+            }
+        });
+    </script>
+</body>
+</html>

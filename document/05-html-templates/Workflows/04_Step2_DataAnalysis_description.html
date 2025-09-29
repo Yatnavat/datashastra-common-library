@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Analysis - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #030213;
+            --color-secondary: #4A90E2;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-destructive: #ef4444;
+            --color-background: #ffffff;
+            --color-muted: #f3f4f6;
+            --color-muted-foreground: #6b7280;
+            --color-border: #e5e7eb;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --radius: 0.5rem;
+            --chart-1: #3b82f6;
+            --chart-2: #10b981;
+            --chart-3: #f59e0b;
+            --chart-4: #ef4444;
+            --chart-5: #8b5cf6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-primary);
+            background: #f9fafb;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowContainer
+           ============================================ */
+        .workflow-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowSidebar
+           ============================================ */
+        .workflow-sidebar {
+            width: 280px;
+            background: white;
+            border-right: 1px solid var(--color-border);
+            padding: var(--spacing-lg);
+            overflow-y: auto;
+        }
+
+        .workflow-sidebar__header {
+            margin-bottom: var(--spacing-xl);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .workflow-sidebar__title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .workflow-sidebar__subtitle {
+            font-size: 13px;
+            color: var(--color-muted-foreground);
+        }
+
+        .workflow-sidebar__steps {
+            list-style: none;
+        }
+
+        .workflow-sidebar__step {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .workflow-sidebar__step-button {
+            width: 100%;
+            padding: var(--spacing-md);
+            border: none;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .workflow-sidebar__step-button:hover {
+            background: var(--color-muted);
+        }
+
+        .workflow-sidebar__step-button--active {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .workflow-sidebar__step-button--completed {
+            background: transparent;
+        }
+
+        .workflow-sidebar__step-button--disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .workflow-sidebar__step-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--color-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .workflow-sidebar__step-button--active .workflow-sidebar__step-icon {
+            background: white;
+            color: var(--color-primary);
+        }
+
+        .workflow-sidebar__step-button--completed .workflow-sidebar__step-icon {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .workflow-sidebar__step-content {
+            flex: 1;
+        }
+
+        .workflow-sidebar__step-name {
+            font-weight: 500;
+            display: block;
+        }
+
+        .workflow-sidebar__step-description {
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+            display: block;
+            margin-top: 2px;
+        }
+
+        .workflow-sidebar__step-button--active .workflow-sidebar__step-description {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* ============================================
+           COMPONENT: MainContent
+           ============================================ */
+        .main-content {
+            flex: 1;
+            padding: var(--spacing-xl);
+            overflow-y: auto;
+            background: #f9fafb;
+        }
+
+        .main-content__header {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .main-content__title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .main-content__subtitle {
+            color: var(--color-muted-foreground);
+        }
+
+        .main-content__actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* ============================================
+           COMPONENT: AnalysisContainer
+           ============================================ */
+        .analysis-container {
+            background: white;
+            border-radius: var(--radius);
+            padding: var(--spacing-xl);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .analysis-header {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .analysis-header__title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .analysis-header__description {
+            color: var(--color-muted-foreground);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .analysis-header__controls {
+            display: flex;
+            gap: var(--spacing-md);
+            align-items: center;
+        }
+
+        /* ============================================
+           COMPONENT: Dropdown
+           ============================================ */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown__trigger {
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            min-width: 200px;
+            justify-content: space-between;
+        }
+
+        .dropdown__trigger:hover {
+            background: var(--color-muted);
+        }
+
+        .dropdown__menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .dropdown__menu--open {
+            display: block;
+        }
+
+        .dropdown__option {
+            padding: var(--spacing-sm) var(--spacing-md);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .dropdown__option:hover {
+            background: var(--color-muted);
+        }
+
+        .dropdown__option--selected {
+            background: var(--color-muted);
+            font-weight: 500;
+        }
+
+        .dropdown__option--selected::after {
+            content: '✓';
+            margin-left: auto;
+            color: var(--color-primary);
+        }
+
+        /* ============================================
+           COMPONENT: AnalysisTabs - TABBED INTERFACE with EXACT 6-TAB STRUCTURE
+           ============================================ */
+        .analysis-tabs {
+            width: 100%;
+        }
+
+        .analysis-tabs__list {
+            display: flex;
+            gap: 2px;
+            border-bottom: 2px solid var(--color-border);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .analysis-tabs__trigger {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-muted-foreground);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            position: relative;
+        }
+
+        .analysis-tabs__trigger:hover {
+            color: var(--color-primary);
+            background: var(--color-muted);
+        }
+
+        .analysis-tabs__trigger--active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+            background: transparent;
+        }
+
+        .analysis-tabs__trigger-icon {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .analysis-tabs__content {
+            display: none;
+        }
+
+        .analysis-tabs__content--active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ============================================
+           COMPONENT: MetricsGrid - METRICS DASHBOARD LAYOUT
+           ============================================ */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .metric-card {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-lg);
+        }
+
+        .metric-card__label {
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+            margin-bottom: var(--spacing-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-card__value {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .metric-card__value--primary {
+            color: var(--chart-1);
+        }
+
+        .metric-card__value--success {
+            color: var(--color-success);
+        }
+
+        .metric-card__value--warning {
+            color: var(--color-warning);
+        }
+
+        .metric-card__value--purple {
+            color: var(--chart-5);
+        }
+
+        .metric-card__value--orange {
+            color: var(--chart-3);
+        }
+
+        /* ============================================
+           COMPONENT: ChartContainer - INTERACTIVE CHART DASHBOARD
+           ============================================ */
+        .chart-container {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .chart-container__header {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .chart-container__title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .chart-container__description {
+            font-size: 13px;
+            color: var(--color-muted-foreground);
+        }
+
+        .chart-container__body {
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-muted);
+            border-radius: var(--radius);
+            position: relative;
+        }
+
+        .chart-placeholder {
+            text-align: center;
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           COMPONENT: DataTable
+           ============================================ */
+        .data-table {
+            width: 100%;
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .data-table__header {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--color-muted);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .data-table__title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-muted-foreground);
+        }
+
+        .data-table__body {
+            overflow-x: auto;
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: var(--spacing-md);
+            background: var(--color-muted);
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--color-muted-foreground);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .data-table td {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-muted);
+            font-size: 14px;
+        }
+
+        .data-table tr:hover {
+            background: rgba(0, 0, 0, 0.01);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ============================================
+           COMPONENT: QualityIndicator
+           ============================================ */
+        .quality-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .quality-indicator__value {
+            font-weight: 600;
+            color: var(--color-success);
+        }
+
+        .quality-indicator__icon {
+            color: var(--color-success);
+        }
+
+        .quality-indicator--warning .quality-indicator__value,
+        .quality-indicator--warning .quality-indicator__icon {
+            color: var(--color-warning);
+        }
+
+        .quality-indicator--error .quality-indicator__value,
+        .quality-indicator--error .quality-indicator__icon {
+            color: var(--color-destructive);
+        }
+
+        /* ============================================
+           COMPONENT: ProgressBar - HORIZONTAL PROGRESS BARS
+           ============================================ */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--color-muted);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar__fill {
+            height: 100%;
+            background: var(--color-success);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-bar--warning .progress-bar__fill {
+            background: var(--color-warning);
+        }
+
+        .progress-bar--error .progress-bar__fill {
+            background: var(--color-destructive);
+        }
+
+        /* ============================================
+           COMPONENT: Badge
+           ============================================ */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 500;
+            border-radius: 12px;
+            background: var(--color-muted);
+            color: var(--color-muted-foreground);
+        }
+
+        .badge--high {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--color-destructive);
+        }
+
+        .badge--medium {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--color-warning);
+        }
+
+        .badge--low {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--color-success);
+        }
+
+        /* ============================================
+           COMPONENT: Button
+           ============================================ */
+        .button {
+            padding: var(--spacing-md) var(--spacing-xl);
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .button:hover {
+            background: #1a1a2e;
+        }
+
+        .button--outline {
+            background: white;
+            color: var(--color-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        .button--outline:hover {
+            background: var(--color-muted);
+        }
+
+        /* ============================================
+           COMPONENT: StatGrid
+           ============================================ */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-xl);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-item__value {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-item__label {
+            font-size: 13px;
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           COMPONENT: MissingValuesList
+           ============================================ */
+        .missing-values-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .missing-value-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            background: var(--color-muted);
+            border-radius: var(--radius);
+        }
+
+        .missing-value-item__name {
+            font-weight: 500;
+        }
+
+        .missing-value-item__count {
+            font-weight: 600;
+        }
+
+        .missing-value-item__count--zero {
+            color: var(--color-success);
+        }
+
+        .missing-value-item__count--low {
+            color: var(--color-warning);
+        }
+
+        .missing-value-item__count--high {
+            color: var(--color-destructive);
+        }
+
+        /* ============================================
+           COMPONENT: CorrelationItem
+           ============================================ */
+        .correlation-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .correlation-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            background: var(--color-muted);
+            border-radius: var(--radius);
+        }
+
+        .correlation-item__header {
+            flex: 1;
+        }
+
+        .correlation-item__name {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .correlation-item__pvalue {
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+        }
+
+        .correlation-item__value {
+            font-size: 20px;
+            font-weight: 600;
+            margin-right: var(--spacing-md);
+        }
+
+        .correlation-item__value--negative {
+            color: var(--color-destructive);
+        }
+
+        .correlation-item__value--positive {
+            color: var(--color-success);
+        }
+
+        /* ============================================
+           COMPONENT: Charts (Placeholders)
+           ============================================ */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 200px;
+            padding: var(--spacing-md);
+        }
+
+        .bar-chart__bar {
+            flex: 1;
+            background: var(--chart-1);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            min-height: 20px;
+        }
+
+        .bar-chart__bar:hover {
+            opacity: 0.8;
+        }
+
+        .pie-chart {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--chart-1) 0deg 98deg,
+                var(--chart-2) 98deg 177deg,
+                var(--chart-3) 177deg 237deg,
+                var(--chart-4) 237deg 303deg,
+                var(--chart-5) 303deg 360deg
+            );
+            margin: 0 auto;
+        }
+
+        .line-chart {
+            height: 300px;
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 49px,
+                    var(--color-border) 49px,
+                    var(--color-border) 50px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 49px,
+                    var(--color-border) 49px,
+                    var(--color-border) 50px
+                );
+            position: relative;
+            overflow: hidden;
+        }
+
+        .line-chart__line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60%;
+            background: linear-gradient(
+                to top,
+                rgba(59, 130, 246, 0.1),
+                transparent
+            );
+            border-top: 2px solid var(--chart-1);
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN
+           ============================================ */
+        @media (max-width: 768px) {
+            .workflow-sidebar {
+                display: none;
+            }
+
+            .main-content {
+                padding: var(--spacing-md);
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .analysis-tabs__list {
+                flex-wrap: wrap;
+            }
+
+            .analysis-tabs__trigger {
+                flex: 1 0 33.333%;
+                justify-content: center;
+                padding: var(--spacing-sm);
+            }
+
+            .analysis-tabs__trigger-icon {
+                display: none;
+            }
+
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .workflow-sidebar {
+                width: 240px;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         COMPONENT: WorkflowContainer
+         Angular: app-workflow selector
+         ============================================ -->
+    <div class="workflow-container">
+        <!-- ============================================
+             COMPONENT: WorkflowSidebar
+             Angular: app-workflow-sidebar selector
+             INPUTS: @Input() currentStep: number
+             OUTPUTS: @Output() stepSelected: EventEmitter<number>
+             ============================================ -->
+        <aside class="workflow-sidebar">
+            <div class="workflow-sidebar__header">
+                <h2 class="workflow-sidebar__title">Electronics Q4 Analysis</h2>
+                <p class="workflow-sidebar__subtitle">Acme Corporation • Q4 Demand Forecast</p>
+            </div>
+
+            <ul class="workflow-sidebar__steps">
+                <!-- Step 1: Data Upload (Completed) -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--completed" data-click="selectStep" data-step="1">
+                        <span class="workflow-sidebar__step-icon">✓</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Data Upload</span>
+                            <span class="workflow-sidebar__step-description">Upload and validate your data</span>
+                        </span>
+                    </button>
+                </li>
+
+                <!-- Step 2: Data Analysis (Active) -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--active" data-click="selectStep" data-step="2">
+                        <span class="workflow-sidebar__step-icon">2</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Data Analysis</span>
+                            <span class="workflow-sidebar__step-description">Explore data patterns and quality</span>
+                        </span>
+                    </button>
+                </li>
+
+                <!-- Remaining steps -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="3">
+                        <span class="workflow-sidebar__step-icon">3</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Model Selection</span>
+                            <span class="workflow-sidebar__step-description">Choose forecasting models</span>
+                        </span>
+                    </button>
+                </li>
+
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="4">
+                        <span class="workflow-sidebar__step-icon">4</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Feature Selection</span>
+                            <span class="workflow-sidebar__step-description">Configure feature engineering</span>
+                        </span>
+                    </button>
+                </li>
+
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="5">
+                        <span class="workflow-sidebar__step-icon">5</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Aggregation</span>
+                            <span class="workflow-sidebar__step-description">Set aggregation levels and scope</span>
+                        </span>
+                    </button>
+                </li>
+
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="6">
+                        <span class="workflow-sidebar__step-icon">6</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Date Ranges</span>
+                            <span class="workflow-sidebar__step-description">Configure training/testing periods</span>
+                        </span>
+                    </button>
+                </li>
+
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="7">
+                        <span class="workflow-sidebar__step-icon">7</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Model Training</span>
+                            <span class="workflow-sidebar__step-description">Train and evaluate models</span>
+                        </span>
+                    </button>
+                </li>
+
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="8">
+                        <span class="workflow-sidebar__step-icon">8</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Results</span>
+                            <span class="workflow-sidebar__step-description">View results and insights</span>
+                        </span>
+                    </button>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- ============================================
+             COMPONENT: MainContent
+             Angular: app-step-content selector
+             INPUTS: @Input() stepData: StepData
+             ============================================ -->
+        <main class="main-content">
+            <div class="main-content__header">
+                <h1 class="main-content__title">Data Analysis</h1>
+                <p class="main-content__subtitle">Explore data patterns and quality</p>
+            </div>
+
+            <div class="main-content__actions">
+                <button class="button button--outline" style="margin-left: auto;">New Forecast</button>
+            </div>
+
+            <!-- ============================================
+                 COMPONENT: AnalysisContainer
+                 Angular: app-analysis-container selector
+                 INTERACTIVE CHART DASHBOARD Layout
+                 ============================================ -->
+            <div class="analysis-container">
+                <div class="analysis-header">
+                    <h2 class="analysis-header__title">Exploratory Data Analysis (EDA)</h2>
+                    <p class="analysis-header__description">
+                        Comprehensive analysis of your data to understand patterns, distributions, and relationships before modeling
+                    </p>
+
+                    <div class="analysis-header__controls">
+                        <!-- Analysis Type Dropdown -->
+                        <div class="dropdown">
+                            <button class="dropdown__trigger" data-click="toggleDropdown">
+                                <span>Data Overview</span>
+                                <span>▼</span>
+                            </button>
+                            <div class="dropdown__menu" data-dropdown="analysis-type">
+                                <div class="dropdown__option dropdown__option--selected">Data Overview</div>
+                                <div class="dropdown__option">Temporal Analysis</div>
+                                <div class="dropdown__option">Distribution Analysis</div>
+                                <div class="dropdown__option">Categorical Analysis</div>
+                                <div class="dropdown__option">Relationships & Correlations</div>
+                                <div class="dropdown__option">Data Quality</div>
+                            </div>
+                        </div>
+
+                        <!-- Period Selector -->
+                        <div class="dropdown">
+                            <button class="dropdown__trigger" data-click="toggleDropdown">
+                                <span>Full Period</span>
+                                <span>▼</span>
+                            </button>
+                            <div class="dropdown__menu" data-dropdown="period">
+                                <div class="dropdown__option dropdown__option--selected">Full Period</div>
+                                <div class="dropdown__option">Last 30 Days</div>
+                                <div class="dropdown__option">Last 90 Days</div>
+                                <div class="dropdown__option">Last 6 Months</div>
+                                <div class="dropdown__option">Last Year</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================
+                     COMPONENT: AnalysisTabs
+                     Angular: app-analysis-tabs selector
+                     TABBED INTERFACE with EXACT 6-TAB STRUCTURE
+                     TAB SEQUENCE: Overview → Temporal → Distribution → Categorical → Relationships → Data Quality
+                     ============================================ -->
+                <div class="analysis-tabs">
+                    <div class="analysis-tabs__list">
+                        <button class="analysis-tabs__trigger analysis-tabs__trigger--active" data-tab="overview" data-click="selectTab">
+                            <span class="analysis-tabs__trigger-icon">📊</span>
+                            <span>Overview</span>
+                        </button>
+                        <button class="analysis-tabs__trigger" data-tab="temporal" data-click="selectTab">
+                            <span class="analysis-tabs__trigger-icon">📈</span>
+                            <span>Temporal</span>
+                        </button>
+                        <button class="analysis-tabs__trigger" data-tab="distribution" data-click="selectTab">
+                            <span class="analysis-tabs__trigger-icon">📊</span>
+                            <span>Distribution</span>
+                        </button>
+                        <button class="analysis-tabs__trigger" data-tab="categorical" data-click="selectTab">
+                            <span class="analysis-tabs__trigger-icon">⚡</span>
+                            <span>Categorical</span>
+                        </button>
+                        <button class="analysis-tabs__trigger" data-tab="relationships" data-click="selectTab">
+                            <span class="analysis-tabs__trigger-icon">🔗</span>
+                            <span>Relationships</span>
+                        </button>
+                        <button class="analysis-tabs__trigger" data-tab="quality" data-click="selectTab">
+                            <span class="analysis-tabs__trigger-icon">🛡️</span>
+                            <span>Data Quality</span>
+                        </button>
+                    </div>
+
+                    <!-- ============================================
+                         Overview Tab Content
+                         METRICS DASHBOARD LAYOUT
+                         ============================================ -->
+                    <div class="analysis-tabs__content analysis-tabs__content--active" data-tab-content="overview">
+                        <!-- Key Metrics -->
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-card__label">Total Records</div>
+                                <div class="metric-card__value metric-card__value--primary">1,825</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-card__label">Unique Days</div>
+                                <div class="metric-card__value metric-card__value--success">365</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-card__label">SKUs</div>
+                                <div class="metric-card__value metric-card__value--purple">5</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-card__label">Categories</div>
+                                <div class="metric-card__value metric-card__value--orange">5</div>
+                            </div>
+                        </div>
+
+                        <!-- Demand Overview and Data Quality Summary -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <!-- Demand Overview -->
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Demand Overview</h3>
+                                    <p class="chart-container__description">Basic demand statistics</p>
+                                </div>
+                                <div class="stat-grid">
+                                    <div class="stat-item">
+                                        <div class="stat-item__value">102</div>
+                                        <div class="stat-item__label">Avg Demand</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-item__value">233</div>
+                                        <div class="stat-item__label">Max Demand</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-item__value">26</div>
+                                        <div class="stat-item__label">Min Demand</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-item__value">185,264</div>
+                                        <div class="stat-item__label">Total Demand</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Data Quality Summary -->
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Data Quality Summary</h3>
+                                    <p class="chart-container__description">Overall data health indicators</p>
+                                </div>
+                                <div style="padding: 1rem 0;">
+                                    <div style="margin-bottom: 1rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                            <span>Data Completeness</span>
+                                            <span class="quality-indicator">
+                                                <span class="quality-indicator__value">99.34%</span>
+                                                <span class="quality-indicator__icon">✓</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div style="margin-bottom: 1rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span>Outlier Detection</span>
+                                            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <span style="font-weight: 600;">0.93% outliers</span>
+                                                <span style="color: var(--color-muted-foreground);">ℹ️</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span>Date Range Coverage</span>
+                                            <span style="font-weight: 600;">365 days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         Temporal Tab Content
+                         TIME SERIES VISUALIZATION
+                         ============================================ -->
+                    <div class="analysis-tabs__content" data-tab-content="temporal">
+                        <div class="chart-container">
+                            <div class="chart-container__header">
+                                <h3 class="chart-container__title">Daily Demand Trend</h3>
+                                <p class="chart-container__description">Demand patterns over time</p>
+                            </div>
+                            <div class="chart-container__body">
+                                <div class="line-chart">
+                                    <div class="line-chart__line"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Seasonal Patterns</h3>
+                                    <p class="chart-container__description">Monthly demand aggregation</p>
+                                </div>
+                                <div class="chart-container__body">
+                                    <div class="bar-chart">
+                                        <div class="bar-chart__bar" style="height: 65%;"></div>
+                                        <div class="bar-chart__bar" style="height: 70%;"></div>
+                                        <div class="bar-chart__bar" style="height: 72%;"></div>
+                                        <div class="bar-chart__bar" style="height: 68%;"></div>
+                                        <div class="bar-chart__bar" style="height: 71%;"></div>
+                                        <div class="bar-chart__bar" style="height: 62%;"></div>
+                                        <div class="bar-chart__bar" style="height: 55%;"></div>
+                                        <div class="bar-chart__bar" style="height: 48%;"></div>
+                                        <div class="bar-chart__bar" style="height: 45%;"></div>
+                                        <div class="bar-chart__bar" style="height: 43%;"></div>
+                                        <div class="bar-chart__bar" style="height: 44%;"></div>
+                                        <div class="bar-chart__bar" style="height: 48%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Demand vs Price Relationship</h3>
+                                    <p class="chart-container__description">Correlation between price and demand over time</p>
+                                </div>
+                                <div class="chart-container__body">
+                                    <div class="chart-placeholder">Scatter plot visualization</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         Distribution Tab Content
+                         STATISTICAL DISTRIBUTION ANALYSIS
+                         ============================================ -->
+                    <div class="analysis-tabs__content" data-tab-content="distribution">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Demand Distribution</h3>
+                                    <p class="chart-container__description">Histogram of demand values</p>
+                                </div>
+                                <div class="chart-container__body">
+                                    <div class="bar-chart">
+                                        <div class="bar-chart__bar" style="height: 25%;"></div>
+                                        <div class="bar-chart__bar" style="height: 50%;"></div>
+                                        <div class="bar-chart__bar" style="height: 75%;"></div>
+                                        <div class="bar-chart__bar" style="height: 65%;"></div>
+                                        <div class="bar-chart__bar" style="height: 55%;"></div>
+                                        <div class="bar-chart__bar" style="height: 35%;"></div>
+                                        <div class="bar-chart__bar" style="height: 20%;"></div>
+                                        <div class="bar-chart__bar" style="height: 15%;"></div>
+                                        <div class="bar-chart__bar" style="height: 10%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Box Plot Analysis</h3>
+                                    <p class="chart-container__description">Statistical summary and outlier detection</p>
+                                </div>
+                                <div style="padding: 1.5rem;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: center;">
+                                        <div>
+                                            <div style="font-size: 24px; font-weight: 600;">74</div>
+                                            <div style="font-size: 12px; color: var(--color-muted-foreground);">Q1 (25th percentile)</div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 24px; font-weight: 600;">122</div>
+                                            <div style="font-size: 12px; color: var(--color-muted-foreground);">Q3 (75th percentile)</div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 24px; font-weight: 600;">48</div>
+                                            <div style="font-size: 12px; color: var(--color-muted-foreground);">IQR</div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 24px; font-weight: 600; color: var(--color-destructive);">28</div>
+                                            <div style="font-size: 12px; color: var(--color-muted-foreground);">Outliers</div>
+                                        </div>
+                                    </div>
+                                    <div style="margin-top: 1.5rem; padding: 1rem; background: var(--color-muted); border-radius: var(--radius); font-size: 13px; color: var(--color-muted-foreground);">
+                                        ℹ️ 1.53% of data points are outliers.28 above upper bound, 0 below lower bound.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         Categorical Tab Content
+                         CATEGORY ANALYSIS LAYOUT
+                         ============================================ -->
+                    <div class="analysis-tabs__content" data-tab-content="categorical">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Demand by Category</h3>
+                                    <p class="chart-container__description">Performance comparison across categories</p>
+                                </div>
+                                <div class="chart-container__body">
+                                    <div class="bar-chart">
+                                        <div class="bar-chart__bar" style="height: 85%; background: var(--chart-1);"></div>
+                                        <div class="bar-chart__bar" style="height: 65%; background: var(--chart-1);"></div>
+                                        <div class="bar-chart__bar" style="height: 50%; background: var(--chart-1);"></div>
+                                        <div class="bar-chart__bar" style="height: 45%; background: var(--chart-1);"></div>
+                                        <div class="bar-chart__bar" style="height: 65%; background: var(--chart-1);"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Category Market Share</h3>
+                                    <p class="chart-container__description">Distribution of total demand by category</p>
+                                </div>
+                                <div class="chart-container__body">
+                                    <div class="pie-chart"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="data-table">
+                            <div class="data-table__header">
+                                <h3 class="data-table__title">Category Performance Metrics</h3>
+                                <p style="font-size: 12px; color: var(--color-muted-foreground); margin-top: 0.25rem;">Detailed statistics for each category</p>
+                            </div>
+                            <div class="data-table__body">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Avg Demand</th>
+                                            <th>Total Demand</th>
+                                            <th>Avg Price</th>
+                                            <th>Variability %</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Electronics</td>
+                                            <td>138.0</td>
+                                            <td>50,388</td>
+                                            <td>$35.95</td>
+                                            <td>Infinity%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Home</td>
+                                            <td>91.5</td>
+                                            <td>33,382</td>
+                                            <td>$35.99</td>
+                                            <td>Infinity%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Books</td>
+                                            <td>73.0</td>
+                                            <td>26,656</td>
+                                            <td>$35.42</td>
+                                            <td>Infinity%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Sports</td>
+                                            <td>92.1</td>
+                                            <td>33,621</td>
+                                            <td>$35.04</td>
+                                            <td>Infinity%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Fashion</td>
+                                            <td>111.3</td>
+                                            <td>40,619</td>
+                                            <td>$34.59</td>
+                                            <td>Infinity%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         Relationships Tab Content
+                         CORRELATION ANALYSIS DASHBOARD
+                         ============================================ -->
+                    <div class="analysis-tabs__content" data-tab-content="relationships">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Feature Correlations with Demand</h3>
+                                    <p class="chart-container__description">Statistical relationships between features and demand</p>
+                                </div>
+                                <div style="padding: 1rem;">
+                                    <div class="correlation-list">
+                                        <div class="correlation-item">
+                                            <div class="correlation-item__header">
+                                                <div class="correlation-item__name">Price</div>
+                                                <div class="correlation-item__pvalue">p-value: 0.001</div>
+                                            </div>
+                                            <span class="correlation-item__value correlation-item__value--negative">-0.68</span>
+                                            <span class="badge badge--high">High</span>
+                                        </div>
+                                        <div class="correlation-item">
+                                            <div class="correlation-item__header">
+                                                <div class="correlation-item__name">Discount</div>
+                                                <div class="correlation-item__pvalue">p-value: 0.023</div>
+                                            </div>
+                                            <span class="correlation-item__value correlation-item__value--positive">+0.45</span>
+                                            <span class="badge badge--medium">Medium</span>
+                                        </div>
+                                        <div class="correlation-item">
+                                            <div class="correlation-item__header">
+                                                <div class="correlation-item__name">Weekend</div>
+                                                <div class="correlation-item__pvalue">p-value: 0.045</div>
+                                            </div>
+                                            <span class="correlation-item__value correlation-item__value--negative">-0.32</span>
+                                            <span class="badge badge--medium">Medium</span>
+                                        </div>
+                                        <div class="correlation-item">
+                                            <div class="correlation-item__header">
+                                                <div class="correlation-item__name">Holiday</div>
+                                                <div class="correlation-item__pvalue">p-value: 0.008</div>
+                                            </div>
+                                            <span class="correlation-item__value correlation-item__value--positive">+0.58</span>
+                                            <span class="badge badge--high">High</span>
+                                        </div>
+                                        <div class="correlation-item">
+                                            <div class="correlation-item__header">
+                                                <div class="correlation-item__name">Month</div>
+                                                <div class="correlation-item__pvalue">p-value: 0.156</div>
+                                            </div>
+                                            <span class="correlation-item__value correlation-item__value--positive">+0.23</span>
+                                            <span class="badge badge--low">Low</span>
+                                        </div>
+                                        <div class="correlation-item">
+                                            <div class="correlation-item__header">
+                                                <div class="correlation-item__name">Quarter</div>
+                                                <div class="correlation-item__pvalue">p-value: 0.067</div>
+                                            </div>
+                                            <span class="correlation-item__value correlation-item__value--positive">+0.34</span>
+                                            <span class="badge badge--low">Low</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Correlation Strength</h3>
+                                    <p class="chart-container__description">Visual representation of correlation coefficients</p>
+                                </div>
+                                <div class="chart-container__body">
+                                    <div class="chart-placeholder">Correlation heatmap visualization</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         Data Quality Tab Content
+                         QUALITY ASSESSMENT DASHBOARD
+                         ============================================ -->
+                    <div class="analysis-tabs__content" data-tab-content="quality">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Missing Values Analysis</h3>
+                                    <p class="chart-container__description">Data completeness assessment</p>
+                                </div>
+                                <div style="padding: 1rem;">
+                                    <div style="padding: 1rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius); margin-bottom: 1rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <div style="font-size: 12px; color: var(--color-muted-foreground);">Data Completeness</div>
+                                                <div style="font-size: 13px; color: var(--color-success);">Overall data quality</div>
+                                            </div>
+                                            <div style="font-size: 32px; font-weight: 600; color: var(--color-success);">99.34%</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="font-weight: 500; margin-bottom: 1rem;">Missing values by field:</div>
+                                    <div class="missing-values-list">
+                                        <div class="missing-value-item">
+                                            <span class="missing-value-item__name">Demand</span>
+                                            <span class="missing-value-item__count missing-value-item__count--zero">0 missing</span>
+                                        </div>
+                                        <div class="missing-value-item">
+                                            <span class="missing-value-item__name">Price</span>
+                                            <span class="missing-value-item__count missing-value-item__count--low">8 missing</span>
+                                        </div>
+                                        <div class="missing-value-item">
+                                            <span class="missing-value-item__name">Discount</span>
+                                            <span class="missing-value-item__count missing-value-item__count--low">4 missing</span>
+                                        </div>
+                                        <div class="missing-value-item">
+                                            <span class="missing-value-item__name">Category</span>
+                                            <span class="missing-value-item__count missing-value-item__count--zero">0 missing</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-container">
+                                <div class="chart-container__header">
+                                    <h3 class="chart-container__title">Outlier Summary</h3>
+                                    <p class="chart-container__description">Statistical outliers in demand data</p>
+                                </div>
+                                <div style="padding: 1rem;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 32px; font-weight: 600; color: var(--color-destructive);">28</div>
+                                            <div style="font-size: 12px; color: var(--color-muted-foreground);">Total Outliers</div>
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 32px; font-weight: 600; color: var(--chart-1);">1.53%</div>
+                                            <div style="font-size: 12px; color: var(--color-muted-foreground);">Outlier Rate</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="font-weight: 500; margin-bottom: 1rem;">Outliers by category:</div>
+                                    <div style="padding: 1rem; background: var(--color-muted); border-radius: var(--radius);">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span>Electronics</span>
+                                            <span style="color: var(--color-destructive); font-weight: 600;">28 outliers</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Continue Button -->
+                <div style="display: flex; justify-content: flex-end; margin-top: 2rem;">
+                    <button class="button" data-click="continueToNextStep">Continue to Model Selection</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 
+    TypeScript Interfaces:
+    ======================
+    interface AnalysisData {
+        activeTab: 'overview' | 'temporal' | 'distribution' | 'categorical' | 'relationships' | 'quality';
+        analysisType: 'overview' | 'temporal' | 'distribution' | 'categorical' | 'relationships' | 'quality';
+        period: 'full' | 'last30' | 'last90' | 'last180' | 'lastYear';
+        metrics: OverviewMetrics;
+        temporalData: TemporalAnalysis;
+        distributionData: DistributionAnalysis;
+        categoricalData: CategoricalAnalysis;
+        relationshipsData: RelationshipAnalysis;
+        qualityData: DataQualityAnalysis;
+    }
+
+    interface OverviewMetrics {
+        totalRecords: number;
+        uniqueDays: number;
+        uniqueSkus: number;
+        categories: number;
+        avgDemand: number;
+        maxDemand: number;
+        minDemand: number;
+        totalDemand: number;
+        dataCompleteness: number;
+        outlierRate: number;
+        dateRangeDays: number;
+    }
+
+    interface TemporalAnalysis {
+        dailyDemand: TimeSeriesPoint[];
+        seasonalPatterns: SeasonalPattern[];
+        trendAnalysis: TrendData;
+        priceCorrelation: CorrelationData;
+    }
+
+    interface DistributionAnalysis {
+        histogram: HistogramBin[];
+        boxPlot: {
+            q1: number;
+            q3: number;
+            iqr: number;
+            median: number;
+            outlierCount: number;
+            outlierPercentage: number;
+        };
+        statistics: {
+            mean: number;
+            std: number;
+            min: number;
+            max: number;
+            skewness: number;
+            kurtosis: number;
+        };
+    }
+
+    interface CategoricalAnalysis {
+        categoryDemand: CategoryMetric[];
+        marketShare: MarketShareData[];
+        performanceMetrics: CategoryPerformance[];
+    }
+
+    interface RelationshipAnalysis {
+        correlations: FeatureCorrelation[];
+        correlationMatrix: number[][];
+        significantRelationships: Relationship[];
+    }
+
+    interface DataQualityAnalysis {
+        completenessScore: number;
+        missingValues: MissingValueSummary[];
+        outliers: OutlierSummary;
+        dataIssues: DataIssue[];
+    }
+
+    Sample Data:
+    ============
+    const sampleAnalysisData: AnalysisData = {
+        activeTab: 'overview',
+        analysisType: 'overview',
+        period: 'full',
+        metrics: {
+            totalRecords: 1825,
+            uniqueDays: 365,
+            uniqueSkus: 5,
+            categories: 5,
+            avgDemand: 102,
+            maxDemand: 233,
+            minDemand: 26,
+            totalDemand: 185264,
+            dataCompleteness: 99.34,
+            outlierRate: 0.93,
+            dateRangeDays: 365
+        },
+        temporalData: {
+            dailyDemand: [
+                { date: '2024-01-01', demand: 520, price: 35.99 },
+                { date: '2024-01-02', demand: 850, price: 35.99 },
+                // ... more data points
+            ],
+            seasonalPatterns: [
+                { month: 'Jan', avgDemand: 105, avgPrice: 35 },
+                { month: 'Feb', avgDemand: 115, avgPrice: 35 },
+                // ... more months
+            ],
+            trendAnalysis: {
+                trend: 'increasing',
+                seasonality: 'quarterly',
+                growthRate: 0.12
+            },
+            priceCorrelation: {
+                correlation: -0.68,
+                pValue: 0.001,
+                strength: 'high'
+            }
+        },
+        categoricalData: {
+            categoryDemand: [
+                { category: 'Electronics', avgDemand: 138, totalDemand: 50388 },
+                { category: 'Home', avgDemand: 91.5, totalDemand: 33382 },
+                { category: 'Books', avgDemand: 73, totalDemand: 26656 },
+                { category: 'Sports', avgDemand: 92.1, totalDemand: 33621 },
+                { category: 'Fashion', avgDemand: 111.3, totalDemand: 40619 }
+            ],
+            marketShare: [
+                { category: 'Electronics', percentage: 27.3 },
+                { category: 'Fashion', percentage: 22.0 },
+                { category: 'Home', percentage: 18.1 },
+                { category: 'Sports', percentage: 18.2 },
+                { category: 'Books', percentage: 14.4 }
+            ],
+            performanceMetrics: [
+                {
+                    category: 'Electronics',
+                    avgDemand: 138,
+                    totalDemand: 50388,
+                    avgPrice: 35.95,
+                    variability: 'Infinity%'
+                }
+            ]
+        },
+        distributionData: {
+            histogram: [
+                { bin: '48-69', count: 85 },
+                { bin: '70-91', count: 285 },
+                { bin: '91-112', count: 435 },
+                { bin: '112-133', count: 375 },
+                { bin: '133-154', count: 315 },
+                // ... more bins
+            ],
+            boxPlot: {
+                q1: 74,
+                q3: 122,
+                iqr: 48,
+                median: 98,
+                outlierCount: 28,
+                outlierPercentage: 1.53
+            },
+            statistics: {
+                mean: 102,
+                std: 45.3,
+                min: 26,
+                max: 233,
+                skewness: 0.34,
+                kurtosis: 2.87
+            }
+        },
+        relationshipsData: {
+            correlations: [
+                { feature: 'Price', correlation: -0.68, pValue: 0.001, strength: 'high' },
+                { feature: 'Discount', correlation: 0.45, pValue: 0.023, strength: 'medium' },
+                { feature: 'Weekend', correlation: -0.32, pValue: 0.045, strength: 'medium' },
+                { feature: 'Holiday', correlation: 0.58, pValue: 0.008, strength: 'high' },
+                { feature: 'Month', correlation: 0.23, pValue: 0.156, strength: 'low' },
+                { feature: 'Quarter', correlation: 0.34, pValue: 0.067, strength: 'low' }
+            ],
+            correlationMatrix: [
+                [1.00, -0.68, 0.45, -0.32],
+                [-0.68, 1.00, -0.23, 0.12],
+                [0.45, -0.23, 1.00, 0.34],
+                [-0.32, 0.12, 0.34, 1.00]
+            ],
+            significantRelationships: [
+                { variables: ['Price', 'Demand'], strength: 'high', type: 'negative' },
+                { variables: ['Holiday', 'Demand'], strength: 'high', type: 'positive' }
+            ]
+        },
+        qualityData: {
+            completenessScore: 99.34,
+            missingValues: [
+                { field: 'Demand', count: 0 },
+                { field: 'Price', count: 8 },
+                { field: 'Discount', count: 4 },
+                { field: 'Category', count: 0 }
+            ],
+            outliers: {
+                total: 28,
+                percentage: 1.53,
+                byCategory: {
+                    Electronics: 28,
+                    Home: 0,
+                    Books: 0,
+                    Sports: 0,
+                    Fashion: 0
+                }
+            },
+            dataIssues: []
+        }
+    };
+    -->
+</body>
+</html>

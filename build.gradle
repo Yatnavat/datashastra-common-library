@@ -78,6 +78,15 @@ test {
     useJUnitPlatform()
 }
 
+// Suppress Javadoc warnings
+javadoc {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.encoding = 'UTF-8'
+    options.author = false
+    options.version = false
+    options.use = false
+}
+
 // ✅ Publishing to GitHub Packages
 publishing {
     repositories {

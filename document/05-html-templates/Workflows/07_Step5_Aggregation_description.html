@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 5: Aggregation - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #030213;
+            --color-secondary: #4A90E2;
+            --color-background: #f8f9fa;
+            --color-surface: #ffffff;
+            --color-border: #e1e4e8;
+            --color-text-primary: #1a1a1a;
+            --color-text-secondary: #6b7280;
+            --color-text-muted: #9ca3af;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            --color-info: #3b82f6;
+            
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-2xl: 3rem;
+            
+            --border-radius: 0.5rem;
+            --border-radius-sm: 0.375rem;
+            --border-radius-lg: 0.75rem;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-text-primary);
+            background-color: var(--color-background);
+        }
+
+        /* ============================================
+           COMPONENT: AppLayout
+           Future: app-layout.component.css
+           ============================================ */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .app-layout__sidebar {
+            width: 280px;
+            background: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            padding: var(--spacing-lg);
+            overflow-y: auto;
+        }
+
+        .app-layout__content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowNavigation
+           Future: workflow-navigation.component.css
+           ============================================ */
+        .workflow-nav {
+            padding: var(--spacing-md) 0;
+        }
+
+        .workflow-nav__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        .workflow-nav__title {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .workflow-nav__subtitle {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .workflow-nav__steps {
+            list-style: none;
+        }
+
+        .workflow-nav__step {
+            position: relative;
+            padding: var(--spacing-md) var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            cursor: pointer;
+            border-radius: var(--border-radius-sm);
+            transition: background-color 0.2s;
+        }
+
+        .workflow-nav__step::before {
+            content: '';
+            position: absolute;
+            left: 23px;
+            top: 48px;
+            bottom: -8px;
+            width: 2px;
+            background: var(--color-border);
+        }
+
+        .workflow-nav__step:last-child::before {
+            display: none;
+        }
+
+        .workflow-nav__step:hover {
+            background: var(--color-background);
+        }
+
+        .workflow-nav__step--completed .workflow-nav__step-icon {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .workflow-nav__step--completed::before {
+            background: var(--color-success);
+        }
+
+        .workflow-nav__step--active {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .workflow-nav__step--active .workflow-nav__step-text,
+        .workflow-nav__step--active .workflow-nav__step-description {
+            color: white;
+        }
+
+        .workflow-nav__step--active .workflow-nav__step-icon {
+            background: white;
+            color: var(--color-primary);
+        }
+
+        .workflow-nav__step-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--color-background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 2px solid var(--color-border);
+            font-size: 16px;
+        }
+
+        .workflow-nav__step-content {
+            flex: 1;
+        }
+
+        .workflow-nav__step-text {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .workflow-nav__step-description {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        .workflow-nav__actions {
+            margin-top: var(--spacing-2xl);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .workflow-nav__action {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm);
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            border-radius: var(--border-radius-sm);
+            transition: background-color 0.2s;
+            cursor: pointer;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .workflow-nav__action:hover {
+            background: var(--color-background);
+        }
+
+        /* ============================================
+           COMPONENT: AggregationScreen
+           Future: aggregation.component.css
+           ============================================ */
+        .aggregation-screen {
+            padding: var(--spacing-xl);
+        }
+
+        .aggregation-screen__header {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .aggregation-screen__breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            font-size: 13px;
+            color: var(--color-text-secondary);
+        }
+
+        .aggregation-screen__title {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .aggregation-screen__description {
+            color: var(--color-text-secondary);
+        }
+
+        /* Summary Cards */
+        .aggregation-screen__summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .summary-card {
+            background: var(--color-surface);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--color-border);
+            text-align: center;
+        }
+
+        .summary-card__value {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .summary-card__label {
+            color: var(--color-text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Configuration Sections */
+        .aggregation-screen__content {
+            display: grid;
+            gap: var(--spacing-xl);
+        }
+
+        .aggregation-section {
+            background: var(--color-surface);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-xl);
+        }
+
+        .aggregation-section__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .aggregation-section__icon {
+            width: 24px;
+            height: 24px;
+            color: var(--color-text-secondary);
+        }
+
+        .aggregation-section__title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .aggregation-section__description {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        /* Grid Layout for Geographic and Product sections */
+        .aggregation-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-xl);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-weight: 500;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            background: var(--color-surface);
+            font-size: 14px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            background: var(--color-surface);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .form-help {
+            margin-top: var(--spacing-xs);
+            font-size: 12px;
+            color: var(--color-text-muted);
+        }
+
+        /* Selection Lists */
+        .selection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .selection-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .selection-action {
+            padding: var(--spacing-xs) var(--spacing-md);
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            border-radius: var(--border-radius-sm);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .selection-action:hover {
+            background: var(--color-background);
+        }
+
+        .selection-action--active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .selection-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: var(--spacing-sm);
+        }
+
+        .selection-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            background: var(--color-surface);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .selection-item:hover {
+            background: var(--color-background);
+        }
+
+        .selection-item--selected {
+            background: #f0f9ff;
+            border-color: var(--color-info);
+        }
+
+        .selection-item__checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .selection-item__content {
+            flex: 1;
+        }
+
+        .selection-item__name {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .selection-item__description {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        .selection-item__region {
+            padding: 2px 8px;
+            background: var(--color-background);
+            border-radius: var(--border-radius-sm);
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+        }
+
+        /* Forecast Summary */
+        .forecast-summary {
+            background: var(--color-background);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            margin-top: var(--spacing-lg);
+        }
+
+        .forecast-summary__title {
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .forecast-summary__list {
+            list-style: none;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        .forecast-summary__item {
+            padding: var(--spacing-xs) 0;
+            padding-left: var(--spacing-lg);
+            position: relative;
+        }
+
+        .forecast-summary__item::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+        }
+
+        /* Configuration Issues */
+        .configuration-issues {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            margin-top: var(--spacing-xl);
+        }
+
+        .configuration-issues__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            color: var(--color-error);
+            font-weight: 500;
+        }
+
+        .configuration-issues__list {
+            list-style: none;
+            color: var(--color-error);
+            font-size: 13px;
+        }
+
+        .configuration-issues__item {
+            padding: var(--spacing-xs) 0;
+            padding-left: var(--spacing-lg);
+            position: relative;
+        }
+
+        .configuration-issues__item::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+        }
+
+        /* Configuration Ready */
+        .configuration-ready {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            margin-top: var(--spacing-xl);
+        }
+
+        .configuration-ready__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+            color: var(--color-success);
+            font-weight: 500;
+        }
+
+        .configuration-ready__message {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        /* Actions */
+        .aggregation-screen__actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-xl);
+        }
+
+        .btn {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--border-radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn--primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn--primary:hover {
+            background: #1a1a2e;
+        }
+
+        .btn--secondary {
+            background: var(--color-surface);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn--secondary:hover {
+            background: var(--color-background);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .app-layout {
+                flex-direction: column;
+            }
+            
+            .app-layout__sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--color-border);
+            }
+            
+            .aggregation-screen {
+                padding: var(--spacing-md);
+            }
+            
+            .aggregation-screen__summary {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .aggregation-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .aggregation-screen__actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* Tablet Responsive */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .aggregation-screen__summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         COMPONENT: AppComponent
+         Angular: app-root selector
+         ============================================ -->
+    <div class="app-layout">
+        
+        <!-- ============================================
+             COMPONENT: WorkflowSidebarComponent
+             Angular: app-workflow-sidebar selector
+             INPUTS: @Input() currentStep: number
+             OUTPUTS: @Output() stepSelected: EventEmitter<number>
+             ============================================ -->
+        <aside class="app-layout__sidebar">
+            <nav class="workflow-nav">
+                <div class="workflow-nav__header">
+                    <span>←</span>
+                    <span>Electronics Q4 Analysis</span>
+                </div>
+                <h2 class="workflow-nav__title">Acme Corporation • Q4 Demand Forecast</h2>
+                
+                <ul class="workflow-nav__steps">
+                    <li class="workflow-nav__step workflow-nav__step--completed ng-repeat-item" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">✓</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Data Upload</div>
+                            <div class="workflow-nav__step-description">Upload and validate your data</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step workflow-nav__step--completed ng-repeat-item" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">✓</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Data Analysis</div>
+                            <div class="workflow-nav__step-description">Explore data patterns and quality</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step workflow-nav__step--completed ng-repeat-item" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">✓</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Model Selection</div>
+                            <div class="workflow-nav__step-description">Choose forecasting models</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step workflow-nav__step--completed ng-repeat-item" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">✓</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Feature Selection</div>
+                            <div class="workflow-nav__step-description">Configure feature engineering</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step workflow-nav__step--active" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">⬢</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Aggregation</div>
+                            <div class="workflow-nav__step-description">Set aggregation levels and scope</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">📅</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Date Ranges</div>
+                            <div class="workflow-nav__step-description">Configure training/testing periods</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">▷</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Model Training</div>
+                            <div class="workflow-nav__step-description">Train and evaluate models</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">📊</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Results</div>
+                            <div class="workflow-nav__step-description">View results and insights</div>
+                        </div>
+                    </li>
+                </ul>
+                
+                <div class="workflow-nav__actions">
+                    <button class="workflow-nav__action" data-click="saveProgress">
+                        📄 Save Progress
+                    </button>
+                    <button class="workflow-nav__action" data-click="openVersionHistory">
+                        🕐 Version History
+                    </button>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- ============================================
+             COMPONENT: AggregationComponent
+             Angular: app-aggregation selector
+             INPUTS: @Input() activityData: ActivityData
+             OUTPUTS: @Output() configurationComplete: EventEmitter<AggregationConfig>
+             SERVICE: AggregationService, ValidationService
+             ============================================ -->
+        <main class="app-layout__content">
+            <div class="aggregation-screen">
+                <!-- Header Section -->
+                <header class="aggregation-screen__header">
+                    <div class="aggregation-screen__breadcrumb">
+                        <span>Aggregation</span>
+                        <span>•</span>
+                        <span>New Forecast</span>
+                    </div>
+                    <h1 class="aggregation-screen__title">Aggregation</h1>
+                    <p class="aggregation-screen__description">Set aggregation levels and scope</p>
+                </header>
+                
+                <!-- Summary Cards -->
+                <div class="aggregation-screen__summary">
+                    <div class="summary-card">
+                        <div class="summary-card__value" data-bind="forecastingUnits">25</div>
+                        <div class="summary-card__label">Forecasting Units</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card__value" data-bind="timeLevel">daily</div>
+                        <div class="summary-card__label">Time Level</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card__value" data-bind="forecastDays">30</div>
+                        <div class="summary-card__label">Forecast days</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card__value" data-bind="aggregationLevel">depot × sku</div>
+                        <div class="summary-card__label">Aggregation</div>
+                    </div>
+                </div>
+                
+                <!-- Configuration Title -->
+                <div class="aggregation-section">
+                    <div class="aggregation-section__header">
+                        <span class="aggregation-section__icon">⬢</span>
+                        <div>
+                            <h2 class="aggregation-section__title">Aggregation & Forecast Configuration</h2>
+                            <p class="aggregation-section__description">Define the aggregation levels, scope, and forecast horizon for demand forecasting</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Configuration Sections -->
+                <div class="aggregation-screen__content">
+                    <!-- Geographic and Product Grid -->
+                    <div class="aggregation-grid">
+                        <!-- Geographic Aggregation -->
+                        <div class="aggregation-section">
+                            <div class="aggregation-section__header">
+                                <span class="aggregation-section__icon">📍</span>
+                                <div>
+                                    <h3 class="aggregation-section__title">Geographic Aggregation</h3>
+                                    <p class="aggregation-section__description">Select geographic level and specific locations</p>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="geographic-level">Geographic Level</label>
+                                <select class="form-select" id="geographic-level" data-bind="geographicLevel">
+                                    <option value="individual-depots" selected>Individual Depots</option>
+                                    <option value="regional">Regional Groups</option>
+                                    <option value="country">Country Level</option>
+                                    <option value="global">Global Aggregation</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="selection-header">
+                                    <label class="form-label">Select Depots (Max 5)</label>
+                                    <div class="selection-actions">
+                                        <button class="selection-action selection-action--active" data-click="selectTop5Depots">Top 5</button>
+                                        <button class="selection-action" data-click="deselectAllDepots">None</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="selection-list">
+                                    <label class="selection-item selection-item--selected ng-repeat-item">
+                                        <input type="checkbox" class="selection-item__checkbox" checked data-bind="depots.northWarehouse">
+                                        <div class="selection-item__content">
+                                            <div class="selection-item__name">North Warehouse</div>
+                                            <div class="selection-item__description">Seattle</div>
+                                        </div>
+                                        <span class="selection-item__region">North</span>
+                                    </label>
+                                    
+                                    <label class="selection-item ng-repeat-item">
+                                        <input type="checkbox" class="selection-item__checkbox" data-bind="depots.southDistribution">
+                                        <div class="selection-item__content">
+                                            <div class="selection-item__name">South Distribution</div>
+                                            <div class="selection-item__description">Austin</div>
+                                        </div>
+                                        <span class="selection-item__region">South</span>
+                                    </label>
+                                    
+                                    <label class="selection-item ng-repeat-item">
+                                        <input type="checkbox" class="selection-item__checkbox" data-bind="depots.eastLogistics">
+                                        <div class="selection-item__content">
+                                            <div class="selection-item__name">East Logistics Hub</div>
+                                            <div class="selection-item__description">Atlanta</div>
+                                        </div>
+                                        <span class="selection-item__region">East</span>
+                                    </label>
+                                    
+                                    <label class="selection-item ng-repeat-item">
+                                        <input type="checkbox" class="selection-item__checkbox" data-bind="depots.westCoast">
+                                        <div class="selection-item__content">
+                                            <div class="selection-item__name">West Coast Center</div>
+                                            <div class="selection-item__description">Los Angeles</div>
+                                        </div>
+                                        <span class="selection-item__region">West</span>
+                                    </label>
+                                    
+                                    <label class="selection-item ng-repeat-item">
+                                        <input type="checkbox" class="selection-item__checkbox" data-bind="depots.central">
+                                        <div class="selection-item__content">
+                                            <div class="selection-item__name">Central Distribution</div>
+                                            <div class="selection-item__description">Chicago</div>
+                                        </div>
+                                        <span class="selection-item__region">Central</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Product Aggregation -->
+                        <div class="aggregation-section">
+                            <div class="aggregation-section__header">
+                                <span class="aggregation-section__icon">📦</span>
+                                <div>
+                                    <h3 class="aggregation-section__title">Product Aggregation</h3>
+                                    <p class="aggregation-section__description">Define product hierarchy and selection</p>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="product-level">Product Level</label>
+                                <select class="form-select" id="product-level" data-bind="productLevel">
+                                    <option value="individual-skus" selected>Individual SKUs</option>
+                                    <option value="category">Product Categories</option>
+                                    <option value="brand">Brand Level</option>
+                                    <option value="total">Total Products</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="selection-header">
+                                    <label class="form-label">Select SKUs (Max 5)</label>
+                                    <div class="selection-actions">
+                                        <button class="selection-action selection-action--active" data-click="selectTop5SKUs">Top 5</button>
+                                        <button class="selection-action" data-click="deselectAllSKUs">None</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="selection-list">
+                                    <label class="selection-item selection-item--selected ng-repeat-item">
+                                        <input type="checkbox" class="selection-item__checkbox" checked data-bind="skus.laptop">
+                                        <div class="selection-item__content">
+                                            <div class="selection-item__name">Laptop Computer</div>
+                                            <div class="selection-item__description">Electronics • $899.99</div>
+                                        </div>
+                                    </label>
+                                    
+                                    <label class="selection-item ng-repeat-item">
+                                        <input type="checkbox" class="selection-item__checkbox" data-bind="skus.gardenTools">
+                                        <div class="selection-item__content">
+                                            <div class="selection-item__name">Garden Tools Set</div>
+                                            <div class="selection-item__description">Home & Garden • $45.99</div>
+                                        </div>
+                                    </label>
+                                    
+                                    <label class="selection-item ng-repeat-item">
+                                        <input type="checkbox" class="selection-item__checkbox" data-bind="skus.runningShoes">
+                                        <div class="selection-item__content">
+                                            <div class="selection-item__name">Running Shoes</div>
+                                            <div class="selection-item__description">Sports & Outdoors • $89.99</div>
+                                        </div>
+                                    </label>
+                                    
+                                    <label class="selection-item ng-repeat-item">
+                                        <input type="checkbox" class="selection-item__checkbox" data-bind="skus.bestSeller">
+                                        <div class="selection-item__content">
+                                            <div class="selection-item__name">Best Seller Novel</div>
+                                            <div class="selection-item__description">Books & Media • $12.99</div>
+                                        </div>
+                                    </label>
+                                    
+                                    <label class="selection-item ng-repeat-item">
+                                        <input type="checkbox" class="selection-item__checkbox" data-bind="skus.winterJacket">
+                                        <div class="selection-item__content">
+                                            <div class="selection-item__name">Winter Jacket</div>
+                                            <div class="selection-item__description">Fashion & Apparel • $120</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Temporal and Forecast Grid -->
+                    <div class="aggregation-grid">
+                        <!-- Temporal Aggregation -->
+                        <div class="aggregation-section">
+                            <div class="aggregation-section__header">
+                                <span class="aggregation-section__icon">🕐</span>
+                                <div>
+                                    <h3 class="aggregation-section__title">Temporal Aggregation</h3>
+                                    <p class="aggregation-section__description">Configure time-based aggregation</p>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="time-aggregation">Time Aggregation Level</label>
+                                <select class="form-select" id="time-aggregation" data-bind="timeAggregationLevel">
+                                    <option value="daily" selected>Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="quarterly">Quarterly</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="volume-threshold">Minimum Volume Threshold</label>
+                                <select class="form-select" id="volume-threshold" data-bind="volumeThreshold">
+                                    <option value="100" selected>100+ units</option>
+                                    <option value="500">500+ units</option>
+                                    <option value="1000">1000+ units</option>
+                                    <option value="5000">5000+ units</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Forecast Configuration -->
+                        <div class="aggregation-section">
+                            <div class="aggregation-section__header">
+                                <span class="aggregation-section__icon">🎯</span>
+                                <div>
+                                    <h3 class="aggregation-section__title">Forecast Configuration</h3>
+                                    <p class="aggregation-section__description">Define forecast horizon</p>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="forecast-horizon">Forecast Horizon (days)</label>
+                                <input type="number" class="form-input" id="forecast-horizon" value="30" min="1" max="365" data-bind="forecastHorizon">
+                                <p class="form-help">Number of days to forecast into the future (1-30 days)</p>
+                            </div>
+                            
+                            <div class="forecast-summary">
+                                <h4 class="forecast-summary__title">Forecast Summary</h4>
+                                <ul class="forecast-summary__list">
+                                    <li class="forecast-summary__item">Horizon: <span data-bind="summary.horizon">30 days forward</span></li>
+                                    <li class="forecast-summary__item">Granularity: <span data-bind="summary.granularity">daily predictions</span></li>
+                                    <li class="forecast-summary__item">Units: <span data-bind="summary.units">25 forecasting combinations</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Configuration Issues -->
+                    <div class="configuration-issues ng-condition" data-show="hasConfigurationIssues">
+                        <div class="configuration-issues__header">
+                            <span>⚠️</span>
+                            <span>Configuration Issues:</span>
+                        </div>
+                        <ul class="configuration-issues__list">
+                            <li class="configuration-issues__item ng-repeat-item">At least one depot must be selected for depot-level aggregation</li>
+                            <li class="configuration-issues__item ng-repeat-item">At least one SKU must be selected for SKU-level aggregation</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Configuration Ready (hidden by default) -->
+                    <div class="configuration-ready ng-condition" data-show="isConfigurationReady" style="display: none;">
+                        <div class="configuration-ready__header">
+                            <span>✓</span>
+                            <span>Configuration Ready</span>
+                        </div>
+                        <p class="configuration-ready__message">Aggregation configured for <span data-bind="readyMessage">1 forecasting units with 30-day forecast horizon</span></p>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="aggregation-screen__actions">
+                    <button class="btn btn--secondary" data-click="goToPreviousStep">Back</button>
+                    <button class="btn btn--primary" data-click="continueToDateRanges">Continue to Date Ranges</button>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

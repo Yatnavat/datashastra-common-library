@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Upload - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #030213;
+            --color-secondary: #4A90E2;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-destructive: #ef4444;
+            --color-background: #ffffff;
+            --color-muted: #f3f4f6;
+            --color-muted-foreground: #6b7280;
+            --color-border: #e5e7eb;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --radius: 0.5rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-primary);
+            background: #f9fafb;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowContainer
+           ============================================ */
+        .workflow-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowSidebar
+           ============================================ */
+        .workflow-sidebar {
+            width: 280px;
+            background: white;
+            border-right: 1px solid var(--color-border);
+            padding: var(--spacing-lg);
+            overflow-y: auto;
+        }
+
+        .workflow-sidebar__header {
+            margin-bottom: var(--spacing-xl);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .workflow-sidebar__title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .workflow-sidebar__subtitle {
+            font-size: 13px;
+            color: var(--color-muted-foreground);
+        }
+
+        .workflow-sidebar__steps {
+            list-style: none;
+        }
+
+        .workflow-sidebar__step {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .workflow-sidebar__step-button {
+            width: 100%;
+            padding: var(--spacing-md);
+            border: none;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .workflow-sidebar__step-button:hover {
+            background: var(--color-muted);
+        }
+
+        .workflow-sidebar__step-button--active {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .workflow-sidebar__step-button--disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .workflow-sidebar__step-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--color-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .workflow-sidebar__step-button--active .workflow-sidebar__step-icon {
+            background: white;
+            color: var(--color-primary);
+        }
+
+        .workflow-sidebar__step-button--completed .workflow-sidebar__step-icon {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .workflow-sidebar__step-content {
+            flex: 1;
+        }
+
+        .workflow-sidebar__step-name {
+            font-weight: 500;
+            display: block;
+        }
+
+        .workflow-sidebar__step-description {
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+            display: block;
+            margin-top: 2px;
+        }
+
+        .workflow-sidebar__step-button--active .workflow-sidebar__step-description {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .workflow-sidebar__actions {
+            margin-top: var(--spacing-xl);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .workflow-sidebar__action {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: none;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 14px;
+            margin-bottom: var(--spacing-sm);
+            transition: background 0.2s;
+        }
+
+        .workflow-sidebar__action:hover {
+            background: var(--color-muted);
+        }
+
+        .workflow-sidebar__progress {
+            margin-top: var(--spacing-lg);
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           COMPONENT: MainContent
+           ============================================ */
+        .main-content {
+            flex: 1;
+            padding: var(--spacing-xl);
+            overflow-y: auto;
+        }
+
+        .main-content__header {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .main-content__breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 13px;
+            color: var(--color-muted-foreground);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .main-content__title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .main-content__subtitle {
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           COMPONENT: Card
+           ============================================ */
+        .card {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .card__header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .card__title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .card__description {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+        }
+
+        .card__content {
+            padding: var(--spacing-lg);
+        }
+
+        /* ============================================
+           COMPONENT: Tabs
+           ============================================ */
+        .tabs {
+            width: 100%;
+        }
+
+        .tabs__list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-sm);
+            background: var(--color-muted);
+            padding: 4px;
+            border-radius: var(--radius);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .tabs__trigger {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: calc(var(--radius) - 2px);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .tabs__trigger:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .tabs__trigger--active {
+            background: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .tabs__content {
+            display: none;
+        }
+
+        .tabs__content--active {
+            display: block;
+        }
+
+        .tabs__badge {
+            font-size: 11px;
+            padding: 2px 6px;
+            background: var(--color-primary);
+            color: white;
+            border-radius: 3px;
+            margin-left: var(--spacing-sm);
+        }
+
+        /* ============================================
+           COMPONENT: UploadZone
+           ============================================ */
+        .upload-zone {
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-xl);
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: var(--color-muted);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--color-primary);
+            background: rgba(3, 2, 19, 0.02);
+        }
+
+        .upload-zone--drag-over {
+            border-color: var(--color-secondary);
+            background: rgba(74, 144, 226, 0.05);
+        }
+
+        .upload-zone__icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto var(--spacing-md);
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-zone__title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .upload-zone__description {
+            color: var(--color-muted-foreground);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .upload-zone__button {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .upload-zone__button:hover {
+            background: #1a1a2e;
+        }
+
+        .upload-zone__formats {
+            margin-top: var(--spacing-md);
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           COMPONENT: DataRequirements
+           ============================================ */
+        .data-requirements {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .data-requirements__title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .data-requirements__subtitle {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .data-requirement {
+            padding: var(--spacing-md);
+            background: var(--color-muted);
+            border-radius: var(--radius);
+            margin-bottom: var(--spacing-md);
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .data-requirement--optional {
+            border-left-color: var(--color-muted-foreground);
+        }
+
+        .data-requirement__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .data-requirement__name {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-weight: 500;
+        }
+
+        .data-requirement__badge {
+            font-size: 11px;
+            padding: 2px 6px;
+            background: var(--color-primary);
+            color: white;
+            border-radius: 3px;
+        }
+
+        .data-requirement__badge--optional {
+            background: var(--color-muted-foreground);
+        }
+
+        .data-requirement__type {
+            font-size: 11px;
+            padding: 2px 6px;
+            background: var(--color-success);
+            color: white;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .data-requirement__description {
+            color: var(--color-muted-foreground);
+            font-size: 13px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .data-requirement__details {
+            display: flex;
+            gap: var(--spacing-lg);
+            font-size: 13px;
+        }
+
+        .data-requirement__format,
+        .data-requirement__example {
+            color: var(--color-muted-foreground);
+        }
+
+        .data-requirement__format strong,
+        .data-requirement__example strong {
+            color: var(--color-primary);
+        }
+
+        .data-requirement__check {
+            color: var(--color-success);
+            margin-left: var(--spacing-sm);
+        }
+
+        /* ============================================
+           COMPONENT: ValidationResults
+           ============================================ */
+        .validation-results {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .validation-results--success {
+            border-color: var(--color-success);
+            background: #f0fdf4;
+        }
+
+        .validation-results--error {
+            border-color: var(--color-destructive);
+            background: #fef2f2;
+        }
+
+        .validation-results__header {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .validation-results__title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .validation-results__subtitle {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+        }
+
+        .validation-results__stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .validation-stat {
+            text-align: center;
+            padding: var(--spacing-md);
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+        }
+
+        .validation-stat__value {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .validation-stat__label {
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+            text-transform: uppercase;
+        }
+
+        .validation-results__messages {
+            margin-top: var(--spacing-lg);
+        }
+
+        .validation-message {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+            border-radius: var(--radius);
+        }
+
+        .validation-message--success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .validation-message--warning {
+            background: #fef3c7;
+            color: #854d0e;
+        }
+
+        .validation-message__icon {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .validation-message__content {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        /* ============================================
+           COMPONENT: DataTransformation
+           ============================================ */
+        .data-transformation {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .data-transformation__header {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .data-transformation__icon {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: var(--color-muted);
+            border-radius: 50%;
+        }
+
+        .data-transformation__title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .data-transformation__subtitle {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+        }
+
+        .data-transformation__items {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .data-transformation__item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--color-muted);
+            border-radius: var(--radius);
+            border-left: 3px solid var(--color-border);
+        }
+
+        .data-transformation__item--complete {
+            border-left-color: var(--color-success);
+            background: #f0fdf4;
+        }
+
+        .data-transformation__check {
+            width: 24px;
+            height: 24px;
+            background: var(--color-success);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+
+        .data-transformation__content {
+            flex: 1;
+        }
+
+        .data-transformation__content strong {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-size: 14px;
+        }
+
+        .data-transformation__content p {
+            color: var(--color-muted-foreground);
+            font-size: 13px;
+            margin: 0;
+        }
+
+        /* ============================================
+           COMPONENT: DataPreview
+           ============================================ */
+        .data-preview {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-lg);
+        }
+
+        .data-preview__header {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .data-preview__title {
+            font-size: 18px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .data-preview__subtitle {
+            color: var(--color-muted-foreground);
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .data-preview__tabs {
+            display: flex;
+            background: var(--color-muted);
+            padding: 4px;
+            border-radius: var(--radius);
+            gap: 2px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .data-preview__tab {
+            flex: 1;
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: calc(var(--radius) - 2px);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            color: var(--color-muted-foreground);
+        }
+
+        .data-preview__tab:hover {
+            background: rgba(255, 255, 255, 0.5);
+            color: var(--color-primary);
+        }
+
+        .data-preview__tab--active {
+            background: white;
+            color: var(--color-primary);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .data-preview__content {
+            display: none;
+        }
+
+        .data-preview__content--active {
+            display: block;
+        }
+
+        .data-preview__stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        .data-preview__stat {
+            padding: var(--spacing-md);
+            background: var(--color-muted);
+            border-radius: var(--radius);
+            text-align: center;
+        }
+
+        .data-preview__stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .data-preview__stat-label {
+            font-size: 12px;
+            color: var(--color-muted-foreground);
+        }
+
+        .data-preview__lists {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-lg);
+        }
+
+        .data-preview__list {
+            background: var(--color-muted);
+            padding: var(--spacing-md);
+            border-radius: var(--radius);
+        }
+
+        .data-preview__list-title {
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .data-preview__list-items {
+            list-style: none;
+        }
+
+        .data-preview__list-item {
+            padding: var(--spacing-sm) 0;
+            font-size: 14px;
+            color: var(--color-muted-foreground);
+        }
+
+        /* ============================================
+           UTILITIES
+           ============================================ */
+        .button {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .button:hover {
+            background: #1a1a2e;
+        }
+
+        .button--outline {
+            background: white;
+            color: var(--color-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        .button--outline:hover {
+            background: var(--color-muted);
+        }
+
+        .icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN
+           ============================================ */
+        @media (max-width: 768px) {
+            .workflow-sidebar {
+                display: none;
+            }
+            
+            .main-content {
+                padding: var(--spacing-md);
+            }
+
+            .validation-results__stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .data-preview__stats {
+                grid-template-columns: 1fr;
+            }
+
+            .data-preview__lists {
+                grid-template-columns: 1fr;
+            }
+
+            .data-requirement__details {
+                flex-direction: column;
+                gap: var(--spacing-sm);
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .workflow-sidebar {
+                width: 240px;
+            }
+
+            .validation-results__stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         COMPONENT: WorkflowContainer
+         Angular: app-workflow selector
+         ============================================ -->
+    <div class="workflow-container">
+        <!-- ============================================
+             COMPONENT: WorkflowSidebar
+             Angular: app-workflow-sidebar selector
+             INPUTS: @Input() currentStep: number
+             OUTPUTS: @Output() stepSelected: EventEmitter<number>
+             ============================================ -->
+        <aside class="workflow-sidebar">
+            <div class="workflow-sidebar__header">
+                <h2 class="workflow-sidebar__title">Electronics Q4 Analysis</h2>
+                <p class="workflow-sidebar__subtitle">Acme Corporation • Q4 Demand Forecast</p>
+            </div>
+
+            <ul class="workflow-sidebar__steps">
+                <!-- Step 1: Data Upload (Active) -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--active" data-click="selectStep" data-step="1">
+                        <span class="workflow-sidebar__step-icon">1</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Data Upload</span>
+                            <span class="workflow-sidebar__step-description">Upload and validate your data</span>
+                        </span>
+                    </button>
+                </li>
+
+                <!-- Step 2: Data Analysis -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="2">
+                        <span class="workflow-sidebar__step-icon">2</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Data Analysis</span>
+                            <span class="workflow-sidebar__step-description">Explore data patterns and quality</span>
+                        </span>
+                    </button>
+                </li>
+
+                <!-- Step 3: Model Selection -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="3">
+                        <span class="workflow-sidebar__step-icon">3</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Model Selection</span>
+                            <span class="workflow-sidebar__step-description">Choose forecasting models</span>
+                        </span>
+                    </button>
+                </li>
+
+                <!-- Step 4: Feature Selection -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="4">
+                        <span class="workflow-sidebar__step-icon">4</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Feature Selection</span>
+                            <span class="workflow-sidebar__step-description">Configure feature engineering</span>
+                        </span>
+                    </button>
+                </li>
+
+                <!-- Step 5: Aggregation -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="5">
+                        <span class="workflow-sidebar__step-icon">5</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Aggregation</span>
+                            <span class="workflow-sidebar__step-description">Set aggregation levels and scope</span>
+                        </span>
+                    </button>
+                </li>
+
+                <!-- Step 6: Date Ranges -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="6">
+                        <span class="workflow-sidebar__step-icon">6</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Date Ranges</span>
+                            <span class="workflow-sidebar__step-description">Configure training/testing periods</span>
+                        </span>
+                    </button>
+                </li>
+
+                <!-- Step 7: Model Training -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="7">
+                        <span class="workflow-sidebar__step-icon">7</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Model Training</span>
+                            <span class="workflow-sidebar__step-description">Train and evaluate models</span>
+                        </span>
+                    </button>
+                </li>
+
+                <!-- Step 8: Results -->
+                <li class="workflow-sidebar__step">
+                    <button class="workflow-sidebar__step-button workflow-sidebar__step-button--disabled" data-click="selectStep" data-step="8">
+                        <span class="workflow-sidebar__step-icon">8</span>
+                        <span class="workflow-sidebar__step-content">
+                            <span class="workflow-sidebar__step-name">Results</span>
+                            <span class="workflow-sidebar__step-description">View results and insights</span>
+                        </span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="workflow-sidebar__actions">
+                <button class="workflow-sidebar__action" data-click="saveProgress">
+                    <span class="icon">💾</span> Save Progress
+                </button>
+                <button class="workflow-sidebar__action" data-click="viewHistory">
+                    <span class="icon">📊</span> Version History
+                </button>
+            </div>
+
+            <div class="workflow-sidebar__progress">
+                Progress: 0/8 steps
+            </div>
+        </aside>
+
+        <!-- ============================================
+             COMPONENT: MainContent
+             Angular: app-step-content selector
+             INPUTS: @Input() stepData: StepData
+             ============================================ -->
+        <main class="main-content">
+            <div class="main-content__header">
+                <div class="main-content__breadcrumb">
+                    <span>←</span>
+                    <span>Back to Dashboard</span>
+                    <span>/</span>
+                    <span>Electronics Q4 Analysis</span>
+                    <span>/</span>
+                    <span>Data Upload</span>
+                </div>
+                <h1 class="main-content__title">Data Upload</h1>
+                <p class="main-content__subtitle">Upload and validate your data</p>
+            </div>
+
+            <!-- ============================================
+                 COMPONENT: DataUploadSection
+                 Angular: app-data-upload selector
+                 SERVICE: DataUploadService
+                 ============================================ -->
+            <div class="card">
+                <div class="card__header">
+                    <h2 class="card__title">Data Upload & Transformation</h2>
+                    <p class="card__description">Choose your upload type and provide historical demand data for forecasting</p>
+                </div>
+                <div class="card__content">
+                    <!-- ============================================
+                         COMPONENT: UploadTypeTabs
+                         Angular: app-upload-tabs selector
+                         TABBED INTERFACE with EXACT 2-TAB STRUCTURE
+                         TAB SEQUENCE: Raw Data → Pre-processed Data
+                         ============================================ -->
+                    <div class="tabs">
+                        <div class="tabs__list">
+                            <button class="tabs__trigger tabs__trigger--active" data-tab="raw" data-click="selectTab">
+                                <span>📊 Raw Data Upload</span>
+                                <span class="tabs__badge">Recommended</span>
+                            </button>
+                            <button class="tabs__trigger" data-tab="preprocessed" data-click="selectTab">
+                                <span>⚡ Pre-processed Data Upload</span>
+                                <span class="tabs__badge">Advanced</span>
+                            </button>
+                        </div>
+
+                        <!-- Raw Data Tab Content -->
+                        <div class="tabs__content tabs__content--active ng-condition" data-show="activeTab === 'raw'">
+                            <p style="margin-bottom: 1rem; color: var(--color-muted-foreground);">
+                                Upload your original demand data. The system will automatically perform feature engineering and create derived columns like lag features, seasonal indicators, and temporal features.
+                            </p>
+                            <p style="margin-bottom: 1.5rem; font-size: 13px; color: var(--color-muted-foreground);">
+                                ✓ Automatic transformation • ✓ Feature engineering • ✓ Data validation
+                            </p>
+
+                            <!-- ============================================
+                                 COMPONENT: FileUploadZone
+                                 Angular: app-file-upload selector
+                                 DRAG-AND-DROP UPLOAD ZONE
+                                 ============================================ -->
+                            <div class="upload-zone" 
+                                 data-drop="handleFileDrop"
+                                 data-dragover="handleDragOver"
+                                 data-dragleave="handleDragLeave">
+                                <div class="upload-zone__icon">
+                                    <span style="font-size: 24px;">⬆️</span>
+                                </div>
+                                <h3 class="upload-zone__title">Upload Raw Data File</h3>
+                                <p class="upload-zone__description">Upload a CSV or Excel file containing your historical demand data</p>
+                                <button class="upload-zone__button" data-click="chooseFile">Choose File</button>
+                                <button class="button button--outline" style="margin-left: 0.5rem;" data-click="downloadTemplate">
+                                    <span>⬇️</span> Download Template
+                                </button>
+                                <p class="upload-zone__formats">Maximum file size: 100MB</p>
+                                <input type="file" hidden accept=".csv,.xlsx,.xls" data-change="handleFileSelect">
+                            </div>
+                        </div>
+
+                        <!-- Pre-processed Data Tab Content -->
+                        <div class="tabs__content ng-condition" data-show="activeTab === 'preprocessed'">
+                            <p style="margin-bottom: 1rem; color: var(--color-muted-foreground);">
+                                Upload data that already includes derived features like lag variables, seasonal indicators, and temporal features. Requires specific column structure.
+                            </p>
+                            <p style="margin-bottom: 1.5rem; font-size: 13px; color: var(--color-muted-foreground);">
+                                ✓ Skip transformation • ✓ Direct modeling • ✓ Custom features
+                            </p>
+
+                            <div class="upload-zone">
+                                <div class="upload-zone__icon">
+                                    <span style="font-size: 24px;">⬆️</span>
+                                </div>
+                                <h3 class="upload-zone__title">Upload Pre-processed Data File</h3>
+                                <p class="upload-zone__description">Upload a file with engineered features ready for modeling</p>
+                                <button class="upload-zone__button" data-click="chooseFile">Choose File</button>
+                                <button class="button button--outline" style="margin-left: 0.5rem;" data-click="downloadTemplate">
+                                    <span>⬇️</span> Download Template
+                                </button>
+                                <p class="upload-zone__formats">Maximum file size: 100MB</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 COMPONENT: DataSchemaRequirements
+                 Angular: app-schema-requirements selector
+                 REQUIREMENTS SPECIFICATION LAYOUT
+                 ============================================ -->
+            <div class="data-requirements">
+                <h3 class="data-requirements__title">Data Schema Requirements</h3>
+                <p class="data-requirements__subtitle">Required and optional columns for raw data</p>
+
+                <!-- Required Columns -->
+                <div class="data-requirement">
+                    <div class="data-requirement__header">
+                        <div class="data-requirement__name">
+                            Date
+                            <span class="data-requirement__badge">Required</span>
+                        </div>
+                        <span class="data-requirement__type">DATE</span>
+                        <span class="data-requirement__check">✓</span>
+                    </div>
+                    <p class="data-requirement__description">Sales date in ISO format</p>
+                    <div class="data-requirement__details">
+                        <span class="data-requirement__format"><strong>Format:</strong> YYYY-MM-DD</span>
+                        <span class="data-requirement__example"><strong>Example:</strong> 2024-01-15</span>
+                    </div>
+                </div>
+
+                <div class="data-requirement">
+                    <div class="data-requirement__header">
+                        <div class="data-requirement__name">
+                            SKUID
+                            <span class="data-requirement__badge">Required</span>
+                        </div>
+                        <span class="data-requirement__type">STRING</span>
+                        <span class="data-requirement__check">✓</span>
+                    </div>
+                    <p class="data-requirement__description">Unique SKU identifier</p>
+                    <div class="data-requirement__details">
+                        <span class="data-requirement__format"><strong>Format:</strong> Text</span>
+                        <span class="data-requirement__example"><strong>Example:</strong> SKU001, ABC123</span>
+                    </div>
+                </div>
+
+                <div class="data-requirement">
+                    <div class="data-requirement__header">
+                        <div class="data-requirement__name">
+                            Depot
+                            <span class="data-requirement__badge">Required</span>
+                        </div>
+                        <span class="data-requirement__type">STRING</span>
+                        <span class="data-requirement__check">✓</span>
+                    </div>
+                    <p class="data-requirement__description">Depot/warehouse location code</p>
+                    <div class="data-requirement__details">
+                        <span class="data-requirement__format"><strong>Format:</strong> Text</span>
+                        <span class="data-requirement__example"><strong>Example:</strong> D001, WH_NORTH</span>
+                    </div>
+                </div>
+
+                <div class="data-requirement">
+                    <div class="data-requirement__header">
+                        <div class="data-requirement__name">
+                            Region
+                            <span class="data-requirement__badge">Required</span>
+                        </div>
+                        <span class="data-requirement__type">STRING</span>
+                        <span class="data-requirement__check">✓</span>
+                    </div>
+                    <p class="data-requirement__description">Geographical region or territory code</p>
+                    <div class="data-requirement__details">
+                        <span class="data-requirement__format"><strong>Format:</strong> Text</span>
+                        <span class="data-requirement__example"><strong>Example:</strong> North, South, East, West</span>
+                    </div>
+                </div>
+
+                <div class="data-requirement">
+                    <div class="data-requirement__header">
+                        <div class="data-requirement__name">
+                            Demand
+                            <span class="data-requirement__badge">Required</span>
+                        </div>
+                        <span class="data-requirement__type">INTEGER</span>
+                        <span class="data-requirement__check">✓</span>
+                    </div>
+                    <p class="data-requirement__description">Actual units demanded/sold</p>
+                    <div class="data-requirement__details">
+                        <span class="data-requirement__format"><strong>Format:</strong> Positive numbers</span>
+                        <span class="data-requirement__example"><strong>Example:</strong> 150, 89, 234</span>
+                    </div>
+                </div>
+
+                <!-- Optional Columns -->
+                <div class="data-requirement data-requirement--optional">
+                    <div class="data-requirement__header">
+                        <div class="data-requirement__name">
+                            Category
+                            <span class="data-requirement__badge data-requirement__badge--optional">Optional</span>
+                        </div>
+                        <span class="data-requirement__type">STRING</span>
+                        <span class="data-requirement__check">✓</span>
+                    </div>
+                    <p class="data-requirement__description">Product category classification</p>
+                    <div class="data-requirement__details">
+                        <span class="data-requirement__format"><strong>Format:</strong> Text</span>
+                        <span class="data-requirement__example"><strong>Example:</strong> Electronics, Books</span>
+                    </div>
+                </div>
+
+                <div class="data-requirement data-requirement--optional">
+                    <div class="data-requirement__header">
+                        <div class="data-requirement__name">
+                            BackOrder
+                            <span class="data-requirement__badge data-requirement__badge--optional">Optional</span>
+                        </div>
+                        <span class="data-requirement__type">INTEGER</span>
+                        <span class="data-requirement__check">✓</span>
+                    </div>
+                    <p class="data-requirement__description">Units in backorder/unfulfilled</p>
+                    <div class="data-requirement__details">
+                        <span class="data-requirement__format"><strong>Format:</strong> Non-negative numbers</span>
+                        <span class="data-requirement__example"><strong>Example:</strong> 0, 5, 12</span>
+                    </div>
+                </div>
+
+                <div class="data-requirement data-requirement--optional">
+                    <div class="data-requirement__header">
+                        <div class="data-requirement__name">
+                            Price
+                            <span class="data-requirement__badge data-requirement__badge--optional">Optional</span>
+                        </div>
+                        <span class="data-requirement__type">DECIMAL</span>
+                        <span class="data-requirement__check">✓</span>
+                    </div>
+                    <p class="data-requirement__description">Unit price on sale date</p>
+                    <div class="data-requirement__details">
+                        <span class="data-requirement__format"><strong>Format:</strong> Positive decimal</span>
+                        <span class="data-requirement__example"><strong>Example:</strong> 25.99, 15.50</span>
+                    </div>
+                </div>
+
+                <div class="data-requirement data-requirement--optional">
+                    <div class="data-requirement__header">
+                        <div class="data-requirement__name">
+                            Discount
+                            <span class="data-requirement__badge data-requirement__badge--optional">Optional</span>
+                        </div>
+                        <span class="data-requirement__type">DECIMAL</span>
+                        <span class="data-requirement__check">✓</span>
+                    </div>
+                    <p class="data-requirement__description">Discount percentage as decimal</p>
+                    <div class="data-requirement__details">
+                        <span class="data-requirement__format"><strong>Format:</strong> 0.0 to 1.0</span>
+                        <span class="data-requirement__example"><strong>Example:</strong> 0.1 (10%), 0.05 (5%)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 COMPONENT: ValidationResults (Conditional)
+                 Angular: app-validation-results selector
+                 VALIDATION FEEDBACK LAYOUT
+                 ============================================ -->
+            <div class="validation-results validation-results--success ng-condition" data-show="validationComplete">
+                <div class="validation-results__header">
+                    <h3 class="validation-results__title">Validation Results</h3>
+                    <p class="validation-results__subtitle">Data quality and schema validation summary</p>
+                </div>
+
+                <div class="validation-results__stats">
+                    <div class="validation-stat">
+                        <div class="validation-stat__value">1,000</div>
+                        <div class="validation-stat__label">Total Rows</div>
+                    </div>
+                    <div class="validation-stat">
+                        <div class="validation-stat__value">5</div>
+                        <div class="validation-stat__label">Missing Values</div>
+                    </div>
+                    <div class="validation-stat">
+                        <div class="validation-stat__value">12</div>
+                        <div class="validation-stat__label">Detected Outliers</div>
+                    </div>
+                    <div class="validation-stat">
+                        <div class="validation-stat__value">1</div>
+                        <div class="validation-stat__label">Additional Columns</div>
+                    </div>
+                </div>
+
+                <div class="validation-results__messages">
+                    <div class="validation-message validation-message--success">
+                        <span class="validation-message__icon">✓</span>
+                        <div class="validation-message__content">
+                            All required columns are present. Data range: 2024-01-01 to 2024-12-31
+                        </div>
+                    </div>
+                    <div class="validation-message validation-message--warning">
+                        <span class="validation-message__icon">ℹ️</span>
+                        <div class="validation-message__content">
+                            Additional columns detected: <strong>CustomField1</strong><br>
+                            These columns will be included in the analysis but may not be used by all forecasting models.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 COMPONENT: DataTransformation (Conditional)
+                 Angular: app-data-transformation selector
+                 DATA TRANSFORMATION STATUS
+                 ============================================ -->
+            <div class="data-transformation ng-condition" data-show="validationComplete">
+                <div class="data-transformation__header">
+                    <span class="data-transformation__icon">⚡</span>
+                    <div>
+                        <h3 class="data-transformation__title">Data Transformation</h3>
+                        <p class="data-transformation__subtitle">Automatic feature engineering and data transformation process</p>
+                    </div>
+                </div>
+
+                <div class="data-transformation__items">
+                    <div class="data-transformation__item data-transformation__item--complete">
+                        <span class="data-transformation__check">✓</span>
+                        <div class="data-transformation__content">
+                            <strong>Raw Data Processing</strong>
+                            <p>Data validation and quality checks completed</p>
+                        </div>
+                    </div>
+                    <div class="data-transformation__item data-transformation__item--complete">
+                        <span class="data-transformation__check">✓</span>
+                        <div class="data-transformation__content">
+                            <strong>Feature Engineering Complete</strong>
+                            <p>Generated temporal features, lag variables, and seasonal indicators</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 COMPONENT: DataPreview
+                 Angular: app-data-preview selector
+                 DATA TABLE PREVIEW with TABBED INTERFACE - EXACT 3-TAB STRUCTURE
+                 TAB SEQUENCE: Overview → Statistics → Data Sample
+                 ============================================ -->
+            <div class="data-preview ng-condition" data-show="dataUploaded">
+                <div class="data-preview__header">
+                    <h3 class="data-preview__title">
+                        <span>📊</span>
+                        Data Overview & Statistics
+                    </h3>
+                    <p class="data-preview__subtitle">Summary statistics and sample of your transformed data</p>
+                </div>
+                
+                <!-- TABBED INTERFACE with EXACT 3-TAB STRUCTURE -->
+                <div class="data-preview__tabs">
+                    <button class="data-preview__tab data-preview__tab--active" data-tab="overview" data-click="selectPreviewTab">Overview</button>
+                    <button class="data-preview__tab" data-tab="statistics" data-click="selectPreviewTab">Statistics</button>
+                    <button class="data-preview__tab" data-tab="sample" data-click="selectPreviewTab">Data Sample</button>
+                </div>
+
+                <!-- Overview Tab -->
+                <div class="data-preview__content data-preview__content--active" data-tab-content="overview">
+                    <div class="data-preview__stats">
+                        <div class="data-preview__stat">
+                            <div class="data-preview__stat-value">100</div>
+                            <div class="data-preview__stat-label">Total Records</div>
+                        </div>
+                        <div class="data-preview__stat">
+                            <div class="data-preview__stat-value">3</div>
+                            <div class="data-preview__stat-label">Unique SKUs</div>
+                        </div>
+                        <div class="data-preview__stat">
+                            <div class="data-preview__stat-value">3</div>
+                            <div class="data-preview__stat-label">Depots</div>
+                        </div>
+                        <div class="data-preview__stat">
+                            <div class="data-preview__stat-value">100</div>
+                            <div class="data-preview__stat-label">Days Span</div>
+                        </div>
+                    </div>
+
+                    <div class="data-preview__lists">
+                        <div class="data-preview__list">
+                            <h4 class="data-preview__list-title">SKUs Preview</h4>
+                            <ul class="data-preview__list-items">
+                                <li class="data-preview__list-item">SKU001</li>
+                                <li class="data-preview__list-item">SKU002</li>
+                                <li class="data-preview__list-item">SKU003</li>
+                            </ul>
+                        </div>
+                        <div class="data-preview__list">
+                            <h4 class="data-preview__list-title">Depots</h4>
+                            <ul class="data-preview__list-items">
+                                <li class="data-preview__list-item">D001</li>
+                                <li class="data-preview__list-item">D002</li>
+                                <li class="data-preview__list-item">D003</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics Tab -->
+                <div class="data-preview__content" data-tab-content="statistics">
+                    <div class="data-preview__stats">
+                        <div class="data-preview__stat">
+                            <div class="data-preview__stat-value">245.7</div>
+                            <div class="data-preview__stat-label">Mean Demand</div>
+                        </div>
+                        <div class="data-preview__stat">
+                            <div class="data-preview__stat-value">189</div>
+                            <div class="data-preview__stat-label">Median Demand</div>
+                        </div>
+                        <div class="data-preview__stat">
+                            <div class="data-preview__stat-value">78.4</div>
+                            <div class="data-preview__stat-label">Std Deviation</div>
+                        </div>
+                        <div class="data-preview__stat">
+                            <div class="data-preview__stat-value">2,500</div>
+                            <div class="data-preview__stat-label">Max Demand</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Sample Tab -->
+                <div class="data-preview__content" data-tab-content="sample">
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--color-border);">
+                                    <th style="padding: 8px; text-align: left;">Date</th>
+                                    <th style="padding: 8px; text-align: left;">SKUID</th>
+                                    <th style="padding: 8px; text-align: left;">Depot</th>
+                                    <th style="padding: 8px; text-align: left;">Demand</th>
+                                    <th style="padding: 8px; text-align: left;">Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid var(--color-border);">
+                                    <td style="padding: 8px;">2024-01-01</td>
+                                    <td style="padding: 8px;">SKU001</td>
+                                    <td style="padding: 8px;">D001</td>
+                                    <td style="padding: 8px;">245</td>
+                                    <td style="padding: 8px;">24.99</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--color-border);">
+                                    <td style="padding: 8px;">2024-01-01</td>
+                                    <td style="padding: 8px;">SKU002</td>
+                                    <td style="padding: 8px;">D001</td>
+                                    <td style="padding: 8px;">189</td>
+                                    <td style="padding: 8px;">19.99</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--color-border);">
+                                    <td style="padding: 8px;">2024-01-02</td>
+                                    <td style="padding: 8px;">SKU001</td>
+                                    <td style="padding: 8px;">D002</td>
+                                    <td style="padding: 8px;">312</td>
+                                    <td style="padding: 8px;">24.99</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p style="text-align: center; color: var(--color-muted-foreground); margin-top: 1rem; font-size: 13px;">
+                            Showing first 3 rows of 100 total records
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                <button class="button button--outline" data-click="saveDraft">Save Draft</button>
+                <button class="button" data-click="proceedToNextStep">Continue to Data Analysis →</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- 
+    TypeScript Interfaces:
+    ======================
+    interface UploadData {
+        file: File | null;
+        uploadType: 'raw' | 'preprocessed';
+        uploadProgress: number;
+        uploadStatus: 'idle' | 'uploading' | 'complete' | 'error';
+        validationResults: ValidationResults | null;
+    }
+
+    interface ValidationResults {
+        isValid: boolean;
+        totalRows: number;
+        validRows: number;
+        errorCount: number;
+        warningCount: number;
+        qualityScore: number;
+        errors: ValidationError[];
+        warnings: ValidationError[];
+        statistics: DataStatistics;
+    }
+
+    interface ValidationError {
+        row: number;
+        column: string;
+        message: string;
+        severity: 'error' | 'warning';
+        suggestedFix?: string;
+    }
+
+    interface DataStatistics {
+        dateRange: {
+            start: string;
+            end: string;
+        };
+        columnStats: {
+            [key: string]: {
+                mean: number;
+                median: number;
+                min: number;
+                max: number;
+                nullCount: number;
+            };
+        };
+    }
+
+    interface DataRequirement {
+        name: string;
+        description: string;
+        type: 'date' | 'string' | 'number' | 'boolean';
+        required: boolean;
+        format?: string;
+        examples: any[];
+    }
+
+    Sample Data:
+    ============
+    const sampleUploadData: UploadData = {
+        file: new File([''], 'demand_data_2024.csv'),
+        uploadType: 'raw',
+        uploadProgress: 100,
+        uploadStatus: 'complete',
+        validationResults: {
+            isValid: true,
+            totalRows: 1000,
+            validRows: 995,
+            errorCount: 0,
+            warningCount: 5,
+            qualityScore: 99.5,
+            errors: [],
+            warnings: [
+                {
+                    row: 156,
+                    column: 'price',
+                    message: 'Unusual price value detected',
+                    severity: 'warning'
+                }
+            ],
+            statistics: {
+                dateRange: {
+                    start: '2024-01-01',
+                    end: '2024-12-31'
+                },
+                columnStats: {
+                    demand: {
+                        mean: 245.7,
+                        median: 189.0,
+                        min: 0,
+                        max: 2500,
+                        nullCount: 5
+                    }
+                }
+            }
+        }
+    };
+    -->
+</body>
+</html>

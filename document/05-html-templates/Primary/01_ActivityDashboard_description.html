@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Dashboard - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #030213;
+            --color-secondary: #4A90E2;
+            --color-background: #ffffff;
+            --color-muted: #6B7280;
+            --color-border: #E5E7EB;
+            --color-success: #10B981;
+            --color-warning: #F59E0B;
+            --color-error: #EF4444;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --radius-sm: 0.25rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-primary);
+            background-color: #F9FAFB;
+        }
+
+        /* Typography - Based on 14px base font size */
+        h1 {
+            font-size: 20px;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 1.3;
+        }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        p {
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* ============================================
+           COMPONENT: AppContainer
+           Future: app.component.css
+           ============================================ */
+        .app-container {
+            min-height: 100vh;
+            background-color: #F9FAFB;
+        }
+
+        .app-container__wrapper {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: var(--spacing-lg) var(--spacing-md);
+        }
+
+        /* ============================================
+           COMPONENT: DashboardHeader
+           Future: dashboard-header.component.css
+           ============================================ */
+        .dashboard-header {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .dashboard-header__top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .dashboard-header__title-group {
+            flex: 1;
+        }
+
+        .dashboard-header__title {
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .dashboard-header__subtitle {
+            color: var(--color-muted);
+            font-size: 14px;
+        }
+
+        .dashboard-header__action {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dashboard-header__action:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .dashboard-header__action-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ============================================
+           COMPONENT: StatisticsCards
+           Future: statistics-cards.component.css
+           ============================================ */
+        .statistics-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .statistics-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: var(--spacing-md);
+        }
+
+        .statistics-card {
+            background: var(--color-background);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .statistics-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .statistics-card__icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-md);
+            background-color: #F3F4F6;
+        }
+
+        .statistics-card__icon--blue {
+            color: #3B82F6;
+        }
+
+        .statistics-card__icon--green {
+            color: #10B981;
+        }
+
+        .statistics-card__icon--orange {
+            color: #F97316;
+        }
+
+        .statistics-card__icon--purple {
+            color: #8B5CF6;
+        }
+
+        .statistics-card__content {
+            flex: 1;
+        }
+
+        .statistics-card__value {
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .statistics-card__label {
+            color: var(--color-muted);
+            font-size: 13px;
+        }
+
+        /* ============================================
+           COMPONENT: ActivitiesSection
+           Future: activities-section.component.css
+           ============================================ */
+        .activities-section {
+            background: var(--color-background);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+        }
+
+        .activities-section__header {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .activities-section__title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .activities-section__description {
+            color: var(--color-muted);
+            font-size: 13px;
+        }
+
+        /* Main content grid */
+        .activities-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-lg);
+        }
+
+        .activities-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        /* ============================================
+           COMPONENT: ActivityCard
+           Future: activity-card.component.css
+           ============================================ */
+        .activity-card {
+            background: var(--color-background);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            border-left: 4px solid transparent;
+        }
+
+        .activity-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateX(2px);
+        }
+
+        .activity-card--selected {
+            border-left-color: var(--color-primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .activity-card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .activity-card__title-group {
+            flex: 1;
+        }
+
+        .activity-card__title {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .activity-card__badges {
+            display: flex;
+            gap: var(--spacing-xs);
+            align-items: center;
+        }
+
+        .activity-card__client-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            color: var(--color-muted);
+            font-size: 13px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .activity-card__description {
+            color: var(--color-muted);
+            font-size: 13px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .activity-card__meta {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+            flex-wrap: wrap;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .activity-card__meta-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            font-size: 13px;
+            color: var(--color-muted);
+        }
+
+        .activity-card__action {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .activity-card__open-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-md);
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .activity-card__open-btn:hover {
+            background-color: #0A0A1F;
+            transform: translateY(-1px);
+        }
+
+        /* ============================================
+           COMPONENT: ActivityDetailsPanel
+           Future: activity-details-panel.component.css
+           ============================================ */
+        .details-panel {
+            background: var(--color-background);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            position: sticky;
+            top: var(--spacing-lg);
+            height: fit-content;
+        }
+
+        .details-panel__empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-xl) var(--spacing-lg);
+            text-align: center;
+        }
+
+        .details-panel__empty-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: var(--spacing-md);
+            opacity: 0.3;
+        }
+
+        .details-panel__empty-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .details-panel__empty-text {
+            color: var(--color-muted);
+            font-size: 13px;
+        }
+
+        /* ============================================
+           COMPONENT: Badges
+           Future: badge.component.css
+           ============================================ */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .badge--high {
+            background-color: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .badge--medium {
+            background-color: #FEF3C7;
+            color: #92400E;
+        }
+
+        .badge--low {
+            background-color: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .badge--active {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge--completed {
+            background-color: #E0E7FF;
+            color: #3730A3;
+        }
+
+        .badge--onhold {
+            background-color: #F3F4F6;
+            color: #374151;
+        }
+
+        .badge--draft {
+            background-color: #FEF3C7;
+            color: #92400E;
+        }
+
+        .badge--outline {
+            background-color: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-muted);
+        }
+
+        /* ============================================
+           ICONS (SVG placeholders)
+           ============================================ */
+        .icon {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .icon-sm {
+            width: 16px;
+            height: 16px;
+        }
+
+        .icon-lg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* ============================================
+           RESPONSIVE BREAKPOINTS
+           ============================================ */
+        /* Tablet (768px+) */
+        @media (min-width: 768px) {
+            .app-container__wrapper {
+                padding: var(--spacing-xl) var(--spacing-lg);
+            }
+
+            .statistics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .activities-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Desktop (1024px+) */
+        @media (min-width: 1024px) {
+            .statistics-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .activities-content {
+                grid-template-columns: 2fr 1fr;
+            }
+
+            .activities-section {
+                grid-column: 1 / -1;
+            }
+
+            .activities-content {
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: var(--spacing-lg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         COMPONENT: AppComponent
+         Angular: app-root selector
+         ============================================ -->
+    <div class="app-container">
+        <div class="app-container__wrapper">
+            
+            <!-- ============================================
+                 COMPONENT: DashboardHeaderComponent
+                 Angular: app-dashboard-header selector
+                 OUTPUTS: @Output() createActivity: EventEmitter<void>
+                 ============================================ -->
+            <header class="dashboard-header">
+                <div class="dashboard-header__top">
+                    <div class="dashboard-header__title-group">
+                        <h1 class="dashboard-header__title">Activity Dashboard</h1>
+                        <p class="dashboard-header__subtitle">Manage your demand forecasting activities and track version history</p>
+                    </div>
+                    <button class="dashboard-header__action" data-click="openCreateDialog" type="button">
+                        <svg class="dashboard-header__action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        New Activity
+                    </button>
+                </div>
+            </header>
+
+            <!-- ============================================
+                 COMPONENT: StatisticsCardsComponent  
+                 Angular: app-statistics-cards selector
+                 INPUTS: @Input() statistics: DashboardStatistics
+                 SERVICE: DashboardService
+                 ============================================ -->
+            <section class="statistics-section">
+                <div class="statistics-grid">
+                    <!-- Total Activities Card -->
+                    <div class="statistics-card">
+                        <div class="statistics-card__icon statistics-card__icon--blue">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                        </div>
+                        <div class="statistics-card__content">
+                            <div class="statistics-card__value" data-bind="statistics.totalActivities">3</div>
+                            <div class="statistics-card__label">Total Activities</div>
+                        </div>
+                    </div>
+
+                    <!-- Total Forecasts Card -->
+                    <div class="statistics-card">
+                        <div class="statistics-card__icon statistics-card__icon--green">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div class="statistics-card__content">
+                            <div class="statistics-card__value" data-bind="statistics.totalForecasts">6</div>
+                            <div class="statistics-card__label">Total Forecasts</div>
+                        </div>
+                    </div>
+
+                    <!-- Active Activities Card -->
+                    <div class="statistics-card">
+                        <div class="statistics-card__icon statistics-card__icon--orange">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="statistics-card__content">
+                            <div class="statistics-card__value" data-bind="statistics.activeActivities">2</div>
+                            <div class="statistics-card__label">Active Activities</div>
+                        </div>
+                    </div>
+
+                    <!-- Unique Clients Card -->
+                    <div class="statistics-card">
+                        <div class="statistics-card__icon statistics-card__icon--purple">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="statistics-card__content">
+                            <div class="statistics-card__value" data-bind="statistics.uniqueClients">3</div>
+                            <div class="statistics-card__label">Unique Clients</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================
+                 COMPONENT: ActivitiesSectionComponent
+                 Angular: app-activities-section selector
+                 INPUTS: @Input() activities: Activity[]
+                 OUTPUTS: @Output() activitySelected: EventEmitter<Activity>
+                          @Output() openActivity: EventEmitter<Activity>
+                 SERVICE: ActivityService
+                 ============================================ -->
+            <section class="activities-section">
+                <div class="activities-section__header">
+                    <h2 class="activities-section__title">Activities</h2>
+                    <p class="activities-section__description">Manage your demand forecasting activities</p>
+                </div>
+
+                <div class="activities-content">
+                    <!-- Activities List -->
+                    <div class="activities-list">
+                        
+                        <!-- Activity Card 1 -->
+                        <!-- Angular: *ngFor="let activity of activities" -->
+                        <div class="activity-card ng-repeat-item activity-card--selected" data-click="selectActivity" data-activity-id="act_001">
+                            <div class="activity-card__header">
+                                <div class="activity-card__title-group">
+                                    <div class="activity-card__title">
+                                        <span data-bind="activity.name">Electronics Q4 Analysis</span>
+                                        <div class="activity-card__badges">
+                                            <span class="badge badge--high" data-bind="activity.priority">high</span>
+                                            <span class="badge badge--active" data-bind="activity.status">active</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="activity-card__client-info">
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                <span data-bind="activity.client">Acme Corporation</span>
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                                </svg>
+                                <span data-bind="activity.project">Q4 Demand Forecast</span>
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                                <span data-bind="activity.industry">Electronics</span>
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                <span data-bind="activity.forecastCount">3 forecasts</span>
+                            </div>
+                            <div class="activity-card__description" data-bind="activity.description">
+                                Quarterly demand forecasting for electronics division
+                            </div>
+                            <div class="activity-card__action">
+                                <button class="activity-card__open-btn" data-click="openActivity" type="button">
+                                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                    Open
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Activity Card 2 -->
+                        <div class="activity-card ng-repeat-item" data-click="selectActivity" data-activity-id="act_002">
+                            <div class="activity-card__header">
+                                <div class="activity-card__title-group">
+                                    <div class="activity-card__title">
+                                        <span data-bind="activity.name">Retail Chain Analysis</span>
+                                        <div class="activity-card__badges">
+                                            <span class="badge badge--high" data-bind="activity.priority">high</span>
+                                            <span class="badge badge--active" data-bind="activity.status">active</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="activity-card__client-info">
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                <span data-bind="activity.client">RetailCo Inc.</span>
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                                </svg>
+                                <span data-bind="activity.project">Holiday Season Planning</span>
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                                <span data-bind="activity.industry">Retail</span>
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                <span data-bind="activity.forecastCount">2 forecasts</span>
+                            </div>
+                            <div class="activity-card__description" data-bind="activity.description">
+                                Holiday season demand forecasting for retail chain
+                            </div>
+                            <div class="activity-card__action">
+                                <button class="activity-card__open-btn" data-click="openActivity" type="button">
+                                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                    Open
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Activity Card 3 -->
+                        <div class="activity-card ng-repeat-item" data-click="selectActivity" data-activity-id="act_003">
+                            <div class="activity-card__header">
+                                <div class="activity-card__title-group">
+                                    <div class="activity-card__title">
+                                        <span data-bind="activity.name">Multi-Region Logistics</span>
+                                        <div class="activity-card__badges">
+                                            <span class="badge badge--medium" data-bind="activity.priority">medium</span>
+                                            <span class="badge badge--completed" data-bind="activity.status">completed</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="activity-card__client-info">
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                <span data-bind="activity.client">Global Logistics Ltd.</span>
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                                </svg>
+                                <span data-bind="activity.project">Supply Chain Optimization</span>
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                                <span data-bind="activity.industry">Logistics</span>
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                <span data-bind="activity.forecastCount">1 forecasts</span>
+                            </div>
+                            <div class="activity-card__description" data-bind="activity.description">
+                                Multi-region demand forecasting for supply chain optimization
+                            </div>
+                            <div class="activity-card__action">
+                                <button class="activity-card__open-btn" data-click="openActivity" type="button">
+                                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                    Open
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         COMPONENT: ActivityDetailsPanelComponent
+                         Angular: app-activity-details-panel selector
+                         INPUTS: @Input() selectedActivity: Activity | null
+                         OUTPUTS: @Output() openActivity: EventEmitter<Activity>
+                         ============================================ -->
+                    <div class="details-panel">
+                        <!-- Empty State (visible when no activity selected) -->
+                        <div class="details-panel__empty ng-condition" data-show="!selectedActivity">
+                            <svg class="details-panel__empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                            </svg>
+                            <div class="details-panel__empty-title">No Activity Selected</div>
+                            <p class="details-panel__empty-text">
+                                Select an activity to view details and version history
+                            </p>
+                        </div>
+
+                        <!-- Activity Details (visible when activity selected) -->
+                        <!-- This section would be populated when an activity is selected -->
+                        <!-- Angular: *ngIf="selectedActivity" -->
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!--
+    TypeScript Interfaces:
+    ======================
+    interface DashboardStatistics {
+        totalActivities: number;
+        totalForecasts: number;
+        activeActivities: number;
+        uniqueClients: number;
+        trends?: {
+            activitiesGrowth: number;
+            forecastsGrowth: number;
+            clientsGrowth: number;
+        };
+    }
+
+    interface Activity {
+        id: string;
+        name: string;
+        client: string;
+        project: string;
+        description?: string;
+        industry?: string;
+        priority: 'High' | 'Medium' | 'Low';
+        status: 'Active' | 'Completed' | 'On-hold' | 'Draft';
+        createdAt: string;
+        lastModified: string;
+        createdBy?: string;
+        forecasts?: Forecast[];
+        tags?: string[];
+        permissions?: {
+            canEdit: boolean;
+            canDelete: boolean;
+            canView: boolean;
+        };
+    }
+
+    interface Forecast {
+        id: string;
+        version: string;
+        status: 'Completed' | 'In Progress' | 'Failed';
+        accuracy?: number;
+        createdAt: string;
+    }
+
+    Sample Data:
+    ============
+    const sampleStatistics: DashboardStatistics = {
+        totalActivities: 3,
+        totalForecasts: 6,
+        activeActivities: 2,
+        uniqueClients: 3,
+        trends: {
+            activitiesGrowth: 12.5,
+            forecastsGrowth: 8.3,
+            clientsGrowth: 25.0
+        }
+    };
+
+    const sampleActivities: Activity[] = [
+        {
+            id: "act_001",
+            name: "Electronics Q4 Analysis",
+            client: "Acme Corporation",
+            project: "Q4 Demand Forecast",
+            description: "Quarterly demand forecasting for electronics division",
+            industry: "Electronics",
+            priority: "High",
+            status: "Active",
+            createdAt: "2024-01-15T09:30:00Z",
+            lastModified: "2024-01-20T14:45:00Z",
+            createdBy: "john.smith@example.com",
+            forecasts: [
+                { id: "f1", version: "v1.0", status: "Completed", accuracy: 94.2, createdAt: "2024-01-18T11:20:00Z" },
+                { id: "f2", version: "v1.1", status: "Completed", accuracy: 95.8, createdAt: "2024-01-19T09:15:00Z" },
+                { id: "f3", version: "v2.0", status: "In Progress", createdAt: "2024-01-20T14:45:00Z" }
+            ]
+        },
+        {
+            id: "act_002",
+            name: "Retail Chain Analysis",
+            client: "RetailCo Inc.",
+            project: "Holiday Season Planning",
+            description: "Holiday season demand forecasting for retail chain",
+            industry: "Retail",
+            priority: "High",
+            status: "Active",
+            createdAt: "2024-01-10T08:00:00Z",
+            lastModified: "2024-01-18T16:30:00Z",
+            forecasts: [
+                { id: "f4", version: "v1.0", status: "Completed", accuracy: 92.1, createdAt: "2024-01-12T10:00:00Z" },
+                { id: "f5", version: "v1.1", status: "Completed", accuracy: 93.5, createdAt: "2024-01-18T16:30:00Z" }
+            ]
+        },
+        {
+            id: "act_003",
+            name: "Multi-Region Logistics",
+            client: "Global Logistics Ltd.",
+            project: "Supply Chain Optimization",
+            description: "Multi-region demand forecasting for supply chain optimization",
+            industry: "Logistics",
+            priority: "Medium",
+            status: "Completed",
+            createdAt: "2024-01-05T11:00:00Z",
+            lastModified: "2024-01-14T14:00:00Z",
+            forecasts: [
+                { id: "f6", version: "v1.0", status: "Completed", accuracy: 91.7, createdAt: "2024-01-14T14:00:00Z" }
+            ]
+        }
+    ];
+    -->
+
+</body>
+</html>

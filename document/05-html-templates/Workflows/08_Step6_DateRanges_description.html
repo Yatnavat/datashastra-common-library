@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 6: Date Ranges - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #030213;
+            --color-secondary: #4A90E2;
+            --color-background: #f8f9fa;
+            --color-surface: #ffffff;
+            --color-border: #e1e4e8;
+            --color-text-primary: #1a1a1a;
+            --color-text-secondary: #6b7280;
+            --color-text-muted: #9ca3af;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            --color-info: #3b82f6;
+            
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-2xl: 3rem;
+            
+            --border-radius: 0.5rem;
+            --border-radius-sm: 0.375rem;
+            --border-radius-lg: 0.75rem;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-text-primary);
+            background-color: var(--color-background);
+        }
+
+        /* ============================================
+           COMPONENT: AppLayout
+           Future: app-layout.component.css
+           ============================================ */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .app-layout__sidebar {
+            width: 280px;
+            background: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            padding: var(--spacing-lg);
+            overflow-y: auto;
+        }
+
+        .app-layout__content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowNavigation
+           Future: workflow-navigation.component.css
+           ============================================ */
+        .workflow-nav {
+            padding: var(--spacing-md) 0;
+        }
+
+        .workflow-nav__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        .workflow-nav__title {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .workflow-nav__subtitle {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .workflow-nav__steps {
+            list-style: none;
+        }
+
+        .workflow-nav__step {
+            position: relative;
+            padding: var(--spacing-md) var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            cursor: pointer;
+            border-radius: var(--border-radius-sm);
+            transition: background-color 0.2s;
+        }
+
+        .workflow-nav__step::before {
+            content: '';
+            position: absolute;
+            left: 23px;
+            top: 48px;
+            bottom: -8px;
+            width: 2px;
+            background: var(--color-border);
+        }
+
+        .workflow-nav__step:last-child::before {
+            display: none;
+        }
+
+        .workflow-nav__step:hover {
+            background: var(--color-background);
+        }
+
+        .workflow-nav__step--completed .workflow-nav__step-icon {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .workflow-nav__step--completed::before {
+            background: var(--color-success);
+        }
+
+        .workflow-nav__step--active {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .workflow-nav__step--active .workflow-nav__step-text,
+        .workflow-nav__step--active .workflow-nav__step-description {
+            color: white;
+        }
+
+        .workflow-nav__step--active .workflow-nav__step-icon {
+            background: white;
+            color: var(--color-primary);
+        }
+
+        .workflow-nav__step-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--color-background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 2px solid var(--color-border);
+            font-size: 16px;
+        }
+
+        .workflow-nav__step-content {
+            flex: 1;
+        }
+
+        .workflow-nav__step-text {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .workflow-nav__step-description {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        .workflow-nav__actions {
+            margin-top: var(--spacing-2xl);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .workflow-nav__action {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm);
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            border-radius: var(--border-radius-sm);
+            transition: background-color 0.2s;
+            cursor: pointer;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .workflow-nav__action:hover {
+            background: var(--color-background);
+        }
+
+        /* ============================================
+           COMPONENT: DateRangesScreen
+           Future: date-ranges.component.css
+           ============================================ */
+        .date-ranges-screen {
+            padding: var(--spacing-xl);
+        }
+
+        .date-ranges-screen__header {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .date-ranges-screen__breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            font-size: 13px;
+            color: var(--color-text-secondary);
+        }
+
+        .date-ranges-screen__title {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .date-ranges-screen__description {
+            color: var(--color-text-secondary);
+        }
+
+        /* Configuration Header */
+        .configuration-header {
+            background: var(--color-surface);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .configuration-header__icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            margin-right: var(--spacing-sm);
+        }
+
+        .configuration-header__title {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .configuration-header__description {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        /* Summary Cards */
+        .date-ranges-screen__summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .summary-card {
+            background: var(--color-surface);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--color-border);
+            text-align: center;
+        }
+
+        .summary-card__value {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .summary-card__value--primary {
+            color: var(--color-info);
+        }
+
+        .summary-card__value--success {
+            color: var(--color-success);
+        }
+
+        .summary-card__value--dark {
+            color: var(--color-text-primary);
+        }
+
+        .summary-card__label {
+            color: var(--color-text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Date Range Sections */
+        .date-range-section {
+            background: var(--color-surface);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .date-range-section--training {
+            border-left: 4px solid var(--color-info);
+        }
+
+        .date-range-section--testing {
+            border-left: 4px solid var(--color-success);
+        }
+
+        .date-range-section__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .date-range-section__icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .date-range-section__icon--training {
+            color: var(--color-info);
+        }
+
+        .date-range-section__icon--testing {
+            color: var(--color-success);
+        }
+
+        .date-range-section__title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+        }
+
+        .date-range-section__description {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* Form Grid */
+        .date-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            background: var(--color-surface);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            background: var(--color-surface);
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 60px;
+            transition: border-color 0.2s;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        /* Date Info */
+        .date-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        .date-info__item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .date-info__icon {
+            width: 16px;
+            height: 16px;
+            opacity: 0.6;
+        }
+
+        /* Best Practices Section */
+        .best-practices {
+            background: var(--color-surface);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .best-practices__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .best-practices__icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-warning);
+        }
+
+        .best-practices__title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+        }
+
+        .best-practices__list {
+            list-style: none;
+        }
+
+        .best-practices__item {
+            padding: var(--spacing-sm) 0;
+            padding-left: var(--spacing-xl);
+            position: relative;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        .best-practices__item::before {
+            content: "•";
+            position: absolute;
+            left: var(--spacing-md);
+            color: var(--color-text-secondary);
+        }
+
+        .best-practices__item strong {
+            color: var(--color-text-primary);
+        }
+
+        /* Configuration Status */
+        .configuration-status {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .configuration-status__header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+            color: var(--color-success);
+            font-weight: 500;
+        }
+
+        .configuration-status__icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .configuration-status__message {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        /* Actions */
+        .date-ranges-screen__actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-md);
+        }
+
+        .btn {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--border-radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn--primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn--primary:hover {
+            background: #1a1a2e;
+        }
+
+        .btn--secondary {
+            background: var(--color-surface);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn--secondary:hover {
+            background: var(--color-background);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .app-layout {
+                flex-direction: column;
+            }
+            
+            .app-layout__sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--color-border);
+            }
+            
+            .date-ranges-screen {
+                padding: var(--spacing-md);
+            }
+            
+            .date-ranges-screen__summary {
+                grid-template-columns: 1fr;
+            }
+            
+            .date-form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .date-ranges-screen__actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* Tablet Responsive */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .date-ranges-screen__summary {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         COMPONENT: AppComponent
+         Angular: app-root selector
+         ============================================ -->
+    <div class="app-layout">
+        
+        <!-- ============================================
+             COMPONENT: WorkflowSidebarComponent
+             Angular: app-workflow-sidebar selector
+             INPUTS: @Input() currentStep: number
+             OUTPUTS: @Output() stepSelected: EventEmitter<number>
+             ============================================ -->
+        <aside class="app-layout__sidebar">
+            <nav class="workflow-nav">
+                <div class="workflow-nav__header">
+                    <span>←</span>
+                    <span>Electronics Q4 Analysis</span>
+                </div>
+                <h2 class="workflow-nav__title">Acme Corporation • Q4 Demand Forecast</h2>
+                
+                <ul class="workflow-nav__steps">
+                    <li class="workflow-nav__step workflow-nav__step--completed ng-repeat-item" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">✓</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Data Upload</div>
+                            <div class="workflow-nav__step-description">Upload and validate your data</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step workflow-nav__step--completed ng-repeat-item" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">✓</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Data Analysis</div>
+                            <div class="workflow-nav__step-description">Explore data patterns and quality</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step workflow-nav__step--completed ng-repeat-item" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">✓</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Model Selection</div>
+                            <div class="workflow-nav__step-description">Choose forecasting models</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step workflow-nav__step--completed ng-repeat-item" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">✓</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Feature Selection</div>
+                            <div class="workflow-nav__step-description">Configure feature engineering</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step workflow-nav__step--completed ng-repeat-item" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">✓</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Aggregation</div>
+                            <div class="workflow-nav__step-description">Set aggregation levels and scope</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step workflow-nav__step--active" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">📅</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Date Ranges</div>
+                            <div class="workflow-nav__step-description">Configure training/testing periods</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">▷</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Model Training</div>
+                            <div class="workflow-nav__step-description">Train and evaluate models</div>
+                        </div>
+                    </li>
+                    
+                    <li class="workflow-nav__step" data-click="navigateToStep">
+                        <span class="workflow-nav__step-icon">📊</span>
+                        <div class="workflow-nav__step-content">
+                            <div class="workflow-nav__step-text">Results</div>
+                            <div class="workflow-nav__step-description">View results and insights</div>
+                        </div>
+                    </li>
+                </ul>
+                
+                <div class="workflow-nav__actions">
+                    <button class="workflow-nav__action" data-click="saveProgress">
+                        📄 Save Progress
+                    </button>
+                    <button class="workflow-nav__action" data-click="openVersionHistory">
+                        🕐 Version History
+                    </button>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- ============================================
+             COMPONENT: DateRangesComponent
+             Angular: app-date-ranges selector
+             INPUTS: @Input() activityData: ActivityData
+             OUTPUTS: @Output() dateRangesConfigured: EventEmitter<DateRangeConfig>
+             SERVICE: DateRangeService, ValidationService
+             ============================================ -->
+        <main class="app-layout__content">
+            <div class="date-ranges-screen">
+                <!-- Header Section -->
+                <header class="date-ranges-screen__header">
+                    <div class="date-ranges-screen__breadcrumb">
+                        <span>Date Ranges</span>
+                        <span>•</span>
+                        <span>New Forecast</span>
+                    </div>
+                    <h1 class="date-ranges-screen__title">Date Ranges</h1>
+                    <p class="date-ranges-screen__description">Configure training/testing periods</p>
+                </header>
+                
+                <!-- Configuration Header -->
+                <div class="configuration-header">
+                    <h2 class="configuration-header__title">
+                        <span class="configuration-header__icon">📅</span>
+                        Date Range Configuration
+                    </h2>
+                    <p class="configuration-header__description">Configure training and testing date ranges for model validation</p>
+                </div>
+                
+                <!-- Summary Cards -->
+                <div class="date-ranges-screen__summary">
+                    <div class="summary-card">
+                        <div class="summary-card__value summary-card__value--primary" data-bind="trainingDays">303</div>
+                        <div class="summary-card__label">Training Days</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card__value summary-card__value--success" data-bind="testingDays">60</div>
+                        <div class="summary-card__label">Testing Days</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card__value summary-card__value--dark" data-bind="totalDays">363</div>
+                        <div class="summary-card__label">Total Days</div>
+                    </div>
+                </div>
+                
+                <!-- Training Date Range Section -->
+                <div class="date-range-section date-range-section--training">
+                    <div class="date-range-section__header">
+                        <span class="date-range-section__icon date-range-section__icon--training">📅</span>
+                        <h3 class="date-range-section__title">Training Date Range</h3>
+                    </div>
+                    <p class="date-range-section__description">Define the period for training your forecasting models</p>
+                    
+                    <div class="date-form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="training-start">Start Date</label>
+                            <input 
+                                type="date" 
+                                id="training-start" 
+                                class="form-input" 
+                                value="2023-01-01"
+                                data-bind="training.startDate"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="training-end">End Date</label>
+                            <input 
+                                type="date" 
+                                id="training-end" 
+                                class="form-input" 
+                                value="2023-10-31"
+                                data-bind="training.endDate"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="training-description">Description (Optional)</label>
+                        <textarea 
+                            id="training-description" 
+                            class="form-textarea" 
+                            placeholder="Add notes about the training period..."
+                            data-bind="training.description"
+                        >Main training dataset for model learning</textarea>
+                    </div>
+                    
+                    <div class="date-info">
+                        <div class="date-info__item">
+                            <span class="date-info__icon">🕐</span>
+                            Duration: <strong data-bind="training.duration">303 days</strong>
+                        </div>
+                        <div class="date-info__item">
+                            Coverage: <strong data-bind="training.coverage">83.5% of total data</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Testing Date Range Section -->
+                <div class="date-range-section date-range-section--testing">
+                    <div class="date-range-section__header">
+                        <span class="date-range-section__icon date-range-section__icon--testing">📅</span>
+                        <h3 class="date-range-section__title">Testing Date Range</h3>
+                    </div>
+                    <p class="date-range-section__description">Define the period for testing model performance</p>
+                    
+                    <div class="date-form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="testing-start">Start Date</label>
+                            <input 
+                                type="date" 
+                                id="testing-start" 
+                                class="form-input" 
+                                value="2023-11-01"
+                                data-bind="testing.startDate"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="testing-end">End Date</label>
+                            <input 
+                                type="date" 
+                                id="testing-end" 
+                                class="form-input" 
+                                value="2023-12-31"
+                                data-bind="testing.endDate"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="testing-description">Description (Optional)</label>
+                        <textarea 
+                            id="testing-description" 
+                            class="form-textarea" 
+                            placeholder="Add notes about the testing period..."
+                            data-bind="testing.description"
+                        >Hold-out period for model testing</textarea>
+                    </div>
+                    
+                    <div class="date-info">
+                        <div class="date-info__item">
+                            <span class="date-info__icon">🕐</span>
+                            Duration: <strong data-bind="testing.duration">60 days</strong>
+                        </div>
+                        <div class="date-info__item">
+                            Coverage: <strong data-bind="testing.coverage">16.5% of total data</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Best Practices Section -->
+                <div class="best-practices">
+                    <div class="best-practices__header">
+                        <span class="best-practices__icon">💡</span>
+                        <h3 class="best-practices__title">Date Range Best Practices</h3>
+                    </div>
+                    <ul class="best-practices__list">
+                        <li class="best-practices__item ng-repeat-item">
+                            <strong>Training period:</strong> Should contain sufficient historical data (recommended: 6+ months)
+                        </li>
+                        <li class="best-practices__item ng-repeat-item">
+                            <strong>Testing period:</strong> Should be recent and representative of future conditions
+                        </li>
+                        <li class="best-practices__item ng-repeat-item">
+                            <strong>No overlaps:</strong> Training and testing ranges should not overlap to prevent data leakage
+                        </li>
+                        <li class="best-practices__item ng-repeat-item">
+                            <strong>Seasonal coverage:</strong> Include different seasons in training for better generalization
+                        </li>
+                        <li class="best-practices__item ng-repeat-item">
+                            <strong>Chronological order:</strong> Training should typically come before testing in time
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Configuration Status -->
+                <div class="configuration-status ng-condition" data-show="isConfigurationValid">
+                    <div class="configuration-status__header">
+                        <span class="configuration-status__icon">✓</span>
+                        <span>Configuration Valid</span>
+                    </div>
+                    <p class="configuration-status__message">
+                        Date ranges configured with <span data-bind="status.message">303 training days and 60 testing days</span>
+                    </p>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="date-ranges-screen__actions">
+                    <button class="btn btn--secondary" data-click="goToPreviousStep">Back</button>
+                    <button class="btn btn--primary" data-click="continueToModelTraining">Continue to Model Training</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!--
+    TypeScript Interfaces:
+    ======================
+    interface DateRangeConfig {
+        training: {
+            startDate: string;           // ISO date string
+            endDate: string;            // ISO date string
+            description?: string;       // Optional description
+            duration: number;           // Days in training period
+            coverage: number;           // Percentage of total data
+            dataPoints: number;         // Number of data points
+        };
+        testing: {
+            startDate: string;          // ISO date string
+            endDate: string;           // ISO date string
+            description?: string;      // Optional description
+            duration: number;          // Days in testing period
+            coverage: number;          // Percentage of total data
+            dataPoints: number;        // Number of data points
+        };
+        validation?: {
+            method: 'time_series_cv' | 'rolling_window' | 'expanding_window';
+            folds: number;
+            gap: number;              // Days between training and validation
+        };
+        totalDays: number;
+        isValid: boolean;
+        warnings?: string[];
+        errors?: string[];
+    }
+
+    interface DataAvailability {
+        startDate: string;
+        endDate: string;
+        totalDataPoints: number;
+        missingPeriods: Array<{
+            start: string;
+            end: string;
+            reason: string;
+        }>;
+        quality: {
+            overall: number;
+            periods: Array<{
+                start: string;
+                end: string;
+                quality: number;
+            }>;
+        };
+    }
+
+    Sample Data:
+    ============
+    const dateRangeConfig: DateRangeConfig = {
+        training: {
+            startDate: '2023-01-01',
+            endDate: '2023-10-31',
+            description: 'Main training dataset for model learning',
+            duration: 303,
+            coverage: 83.5,
+            dataPoints: 8475
+        },
+        testing: {
+            startDate: '2023-11-01',
+            endDate: '2023-12-31',
+            description: 'Hold-out period for model testing',
+            duration: 60,
+            coverage: 16.5,
+            dataPoints: 1680
+        },
+        validation: {
+            method: 'time_series_cv',
+            folds: 5,
+            gap: 7
+        },
+        totalDays: 363,
+        isValid: true,
+        warnings: []
+    };
+
+    const dataAvailability: DataAvailability = {
+        startDate: '2023-01-01',
+        endDate: '2023-12-31',
+        totalDataPoints: 10155,
+        missingPeriods: [],
+        quality: {
+            overall: 95.2,
+            periods: [
+                {
+                    start: '2023-01-01',
+                    end: '2023-03-31',
+                    quality: 96.5
+                },
+                {
+                    start: '2023-04-01',
+                    end: '2023-06-30',
+                    quality: 94.8
+                },
+                {
+                    start: '2023-07-01',
+                    end: '2023-09-30',
+                    quality: 95.1
+                },
+                {
+                    start: '2023-10-01',
+                    end: '2023-12-31',
+                    quality: 94.3
+                }
+            ]
+        }
+    };
+    -->
+</body>
+</html>

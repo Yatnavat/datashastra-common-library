@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Workflow - Demand Forecasting Engine</title>
+    <style>
+        /* ============================================
+           GLOBAL STYLES & CSS VARIABLES
+           ============================================ */
+        :root {
+            --color-primary: #030213;
+            --color-secondary: #4A90E2;
+            --color-background: #ffffff;
+            --color-sidebar-bg: #F7F8FA;
+            --color-sidebar-active: #030213;
+            --color-muted: #6B7280;
+            --color-muted-light: #9CA3AF;
+            --color-border: #E5E7EB;
+            --color-success: #10B981;
+            --color-warning: #F59E0B;
+            --color-error: #EF4444;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --radius-sm: 0.25rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --sidebar-width: 320px;
+            --sidebar-collapsed-width: 64px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-primary);
+            background-color: var(--color-background);
+        }
+
+        /* Typography - Based on 14px base font size */
+        h1 {
+            font-size: 20px;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 1.3;
+        }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        p {
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowContainer
+           Future: workflow-container.component.css
+           ============================================ */
+        .workflow-container {
+            display: flex;
+            height: 100vh;
+            background-color: var(--color-background);
+            overflow: hidden;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowSidebar
+           Future: workflow-sidebar.component.css
+           ============================================ */
+        .workflow-sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--color-sidebar-bg);
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        .workflow-sidebar--collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        .workflow-sidebar__header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .workflow-sidebar__title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .workflow-sidebar__collapse-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .workflow-sidebar__collapse-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Step Navigation */
+        .workflow-steps {
+            flex: 1;
+            padding: var(--spacing-md);
+            overflow-y: auto;
+        }
+
+        .workflow-steps__list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .workflow-step {
+            display: flex;
+            align-items: flex-start;
+            padding: var(--spacing-md);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            position: relative;
+        }
+
+        .workflow-step:hover:not(.workflow-step--active):not(.workflow-step--locked) {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+
+        .workflow-step--active {
+            background-color: var(--color-sidebar-active);
+            color: white;
+        }
+
+        .workflow-step--completed .workflow-step__indicator {
+            background-color: var(--color-success);
+            color: white;
+        }
+
+        .workflow-step--locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .workflow-step__indicator {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            border: 2px solid var(--color-border);
+            margin-right: var(--spacing-md);
+            flex-shrink: 0;
+            font-size: 18px;
+        }
+
+        .workflow-step--active .workflow-step__indicator {
+            background-color: white;
+            color: var(--color-sidebar-active);
+            border-color: white;
+        }
+
+        .workflow-step__content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .workflow-step__title {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .workflow-step__description {
+            font-size: 13px;
+            color: var(--color-muted);
+            white-space: normal;
+        }
+
+        .workflow-step--active .workflow-step__description {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .workflow-step__badge {
+            position: absolute;
+            top: var(--spacing-md);
+            right: var(--spacing-md);
+            padding: 2px 8px;
+            background-color: var(--color-secondary);
+            color: white;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Sidebar Footer */
+        .workflow-sidebar__footer {
+            padding: var(--spacing-md);
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-sidebar-bg);
+        }
+
+        .workflow-sidebar__actions {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .workflow-sidebar__action-btn {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--color-border);
+            background-color: white;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .workflow-sidebar__action-btn:hover {
+            background-color: var(--color-sidebar-bg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .workflow-sidebar__progress {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .workflow-sidebar__progress-label {
+            font-size: 13px;
+            color: var(--color-muted);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .workflow-sidebar__progress-bar {
+            height: 4px;
+            background-color: var(--color-border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .workflow-sidebar__progress-fill {
+            height: 100%;
+            background-color: var(--color-success);
+            transition: width 0.3s ease;
+        }
+
+        /* ============================================
+           COMPONENT: WorkflowMain
+           Future: workflow-main.component.css
+           ============================================ */
+        .workflow-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .workflow-header {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .workflow-header__left {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .workflow-header__back {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--color-border);
+            background-color: white;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .workflow-header__back:hover {
+            background-color: var(--color-sidebar-bg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .workflow-header__info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .workflow-header__title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .workflow-header__breadcrumb {
+            font-size: 13px;
+            color: var(--color-muted);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .workflow-header__separator {
+            color: var(--color-muted-light);
+        }
+
+        .workflow-header__actions {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .workflow-header__save-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            font-size: 13px;
+            color: var(--color-muted);
+        }
+
+        .workflow-header__version {
+            padding: 4px 10px;
+            background-color: var(--color-sidebar-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--color-muted);
+        }
+
+        /* Main Content Area */
+        .workflow-content {
+            flex: 1;
+            padding: var(--spacing-xl);
+            overflow-y: auto;
+            background-color: #FAFBFC;
+        }
+
+        .workflow-content__placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            text-align: center;
+            padding: var(--spacing-xl);
+        }
+
+        .workflow-content__placeholder-icon {
+            width: 80px;
+            height: 80px;
+            margin-bottom: var(--spacing-lg);
+            opacity: 0.3;
+        }
+
+        .workflow-content__placeholder-title {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .workflow-content__placeholder-text {
+            color: var(--color-muted);
+            max-width: 400px;
+        }
+
+        /* Footer Navigation */
+        .workflow-footer {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+            background-color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .workflow-footer__nav-btn {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border: 1px solid var(--color-border);
+            background-color: white;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .workflow-footer__nav-btn:hover:not(:disabled) {
+            background-color: var(--color-sidebar-bg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .workflow-footer__nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .workflow-footer__nav-btn--primary {
+            background-color: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .workflow-footer__nav-btn--primary:hover:not(:disabled) {
+            background-color: #0A0A1F;
+            border-color: #0A0A1F;
+        }
+
+        .workflow-footer__status {
+            font-size: 13px;
+            color: var(--color-muted);
+        }
+
+        /* Icons (simple CSS icons) */
+        .icon {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+        }
+
+        .icon-sm {
+            width: 16px;
+            height: 16px;
+        }
+
+        .icon-lg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .icon-check::before {
+            content: "✓";
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        /* ============================================
+           RESPONSIVE BREAKPOINTS
+           ============================================ */
+        /* Mobile (< 768px) */
+        @media (max-width: 767px) {
+            .workflow-sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100%;
+                z-index: 100;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .workflow-sidebar--open {
+                transform: translateX(0);
+                box-shadow: var(--shadow-lg);
+            }
+
+            .workflow-sidebar--collapsed {
+                width: var(--sidebar-width);
+            }
+
+            .workflow-header {
+                padding: var(--spacing-md);
+            }
+
+            .workflow-content {
+                padding: var(--spacing-md);
+            }
+
+            .workflow-footer {
+                padding: var(--spacing-md);
+                flex-direction: column;
+                gap: var(--spacing-md);
+            }
+
+            .workflow-footer__nav-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Tablet (768px+) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .workflow-sidebar {
+                width: 280px;
+            }
+
+            .workflow-sidebar--collapsed {
+                width: var(--sidebar-collapsed-width);
+            }
+        }
+
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+            border-radius: var(--radius-md);
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         COMPONENT: WorkflowComponent
+         Angular: app-workflow selector
+         INPUTS: @Input() activity: Activity
+                 @Input() currentStep: number
+         OUTPUTS: @Output() stepChange: EventEmitter<number>
+                  @Output() saveProgress: EventEmitter<void>
+         SERVICE: WorkflowService, ActivityService
+         ============================================ -->
+    <div class="workflow-container">
+        
+        <!-- ============================================
+             COMPONENT: WorkflowSidebarComponent
+             Angular: app-workflow-sidebar selector
+             INPUTS: @Input() steps: WorkflowStep[]
+                     @Input() currentStep: number
+                     @Input() collapsed: boolean
+             OUTPUTS: @Output() stepSelect: EventEmitter<number>
+                      @Output() toggleCollapse: EventEmitter<void>
+                      @Output() saveProgress: EventEmitter<void>
+                      @Output() openVersionHistory: EventEmitter<void>
+             ============================================ -->
+        <aside class="workflow-sidebar" data-collapsed="false">
+            
+            <!-- Step Navigation -->
+            <div class="workflow-steps">
+                <nav class="workflow-steps__list" role="navigation" aria-label="Workflow steps">
+                    
+                    <!-- Step 1: Data Upload (Active) -->
+                    <button class="workflow-step workflow-step--active ng-repeat-item" 
+                            data-click="selectStep" 
+                            data-step-index="0"
+                            aria-current="step">
+                        <div class="workflow-step__indicator">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 18C5.17 18 3.67 16.5 3.67 14.67C3.67 13.15 4.69 11.89 6.09 11.5C6.03 11.17 6 10.84 6 10.5C6 7.46 8.46 5 11.5 5C14.05 5 16.18 6.79 16.76 9.15C18.04 9.43 19 10.54 19 11.86C19 13.41 17.66 14.67 16.11 14.67H7M10.83 13L14.38 9.45L13 8.03L10.83 10.19L9.71 9.07L8.29 10.5L10.83 13Z"/>
+                            </svg>
+                        </div>
+                        <div class="workflow-step__content">
+                            <div class="workflow-step__title" data-bind="step.title">Data Upload</div>
+                            <div class="workflow-step__description" data-bind="step.description">Upload and validate your data</div>
+                        </div>
+                    </button>
+
+                    <!-- Step 2: Data Analysis -->
+                    <button class="workflow-step ng-repeat-item workflow-step--locked" 
+                            data-click="selectStep" 
+                            data-step-index="1"
+                            disabled>
+                        <div class="workflow-step__indicator">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M9,4V7H14L17,10V21A1,1 0 0,1 16,22H7C5.89,22 5,21.1 5,20V6C5,4.89 5.89,4 7,4H9M12,9A3,3 0 0,1 15,12C15,12.06 15,12.11 15,12.17L16.5,13.68C16.83,12.86 17,12 17,11A5,5 0 0,0 12,6V8.18C12.85,8.47 13.5,9.17 13.79,10.03L15,11.23V12A3,3 0 0,1 12,9Z"/>
+                            </svg>
+                        </div>
+                        <div class="workflow-step__content">
+                            <div class="workflow-step__title" data-bind="step.title">Data Analysis</div>
+                            <div class="workflow-step__description" data-bind="step.description">Explore data patterns and quality</div>
+                        </div>
+                    </button>
+
+                    <!-- Step 3: Model Selection -->
+                    <button class="workflow-step ng-repeat-item workflow-step--locked" 
+                            data-click="selectStep" 
+                            data-step-index="2"
+                            disabled>
+                        <div class="workflow-step__indicator">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z"/>
+                            </svg>
+                        </div>
+                        <div class="workflow-step__content">
+                            <div class="workflow-step__title" data-bind="step.title">Model Selection</div>
+                            <div class="workflow-step__description" data-bind="step.description">Choose forecasting models</div>
+                        </div>
+                    </button>
+
+                    <!-- Step 4: Feature Selection -->
+                    <button class="workflow-step ng-repeat-item workflow-step--locked" 
+                            data-click="selectStep" 
+                            data-step-index="3"
+                            disabled>
+                        <div class="workflow-step__indicator">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M13,6V9H21V6H13M13,14H21V11H13V14M13,19H21V16H13V19M3,4V11H11V4H3M5,6H9V9H5V6M3,13V20H11V13H3M5,15H9V18H5V15Z"/>
+                            </svg>
+                        </div>
+                        <div class="workflow-step__content">
+                            <div class="workflow-step__title" data-bind="step.title">Feature Selection</div>
+                            <div class="workflow-step__description" data-bind="step.description">Configure feature engineering</div>
+                        </div>
+                    </button>
+
+                    <!-- Step 5: Aggregation -->
+                    <button class="workflow-step ng-repeat-item workflow-step--locked" 
+                            data-click="selectStep" 
+                            data-step-index="4"
+                            disabled>
+                        <div class="workflow-step__indicator">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17,13V17H13V19H17V23H19V19H23V17H19V13H17M11,21H3C1.89,21 1,20.1 1,19V5A2,2 0 0,1 3,3H11V5H3V19H11V21M21,9V7H13V5H21A2,2 0 0,1 23,7V11.34C22.37,11.12 21.7,11 21,11V9M13,19V17H11V15H13V13H11V11H13V9H11L11,21H13V19Z"/>
+                            </svg>
+                        </div>
+                        <div class="workflow-step__content">
+                            <div class="workflow-step__title" data-bind="step.title">Aggregation</div>
+                            <div class="workflow-step__description" data-bind="step.description">Set aggregation levels and scope</div>
+                        </div>
+                    </button>
+
+                    <!-- Step 6: Date Ranges -->
+                    <button class="workflow-step ng-repeat-item workflow-step--locked" 
+                            data-click="selectStep" 
+                            data-step-index="5"
+                            disabled>
+                        <div class="workflow-step__indicator">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"/>
+                            </svg>
+                        </div>
+                        <div class="workflow-step__content">
+                            <div class="workflow-step__title" data-bind="step.title">Date Ranges</div>
+                            <div class="workflow-step__description" data-bind="step.description">Configure training/testing periods</div>
+                        </div>
+                    </button>
+
+                    <!-- Step 7: Model Training -->
+                    <button class="workflow-step ng-repeat-item workflow-step--locked" 
+                            data-click="selectStep" 
+                            data-step-index="6"
+                            disabled>
+                        <div class="workflow-step__indicator">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+                            </svg>
+                        </div>
+                        <div class="workflow-step__content">
+                            <div class="workflow-step__title" data-bind="step.title">Model Training</div>
+                            <div class="workflow-step__description" data-bind="step.description">Train and evaluate models</div>
+                        </div>
+                    </button>
+
+                    <!-- Step 8: Results -->
+                    <button class="workflow-step ng-repeat-item workflow-step--locked" 
+                            data-click="selectStep" 
+                            data-step-index="7"
+                            disabled>
+                        <div class="workflow-step__indicator">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"/>
+                            </svg>
+                        </div>
+                        <div class="workflow-step__content">
+                            <div class="workflow-step__title" data-bind="step.title">Results</div>
+                            <div class="workflow-step__description" data-bind="step.description">View results and insights</div>
+                        </div>
+                    </button>
+
+                </nav>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="workflow-sidebar__footer">
+                <div class="workflow-sidebar__progress">
+                    <div class="workflow-sidebar__progress-label" data-bind="progressText">Progress: 0/8 steps</div>
+                    <div class="workflow-sidebar__progress-bar">
+                        <div class="workflow-sidebar__progress-fill" style="width: 0%" data-bind="progressPercentage"></div>
+                    </div>
+                </div>
+                <div class="workflow-sidebar__actions">
+                    <button class="workflow-sidebar__action-btn" data-click="saveProgress">
+                        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                        </svg>
+                        Save Progress
+                    </button>
+                    <button class="workflow-sidebar__action-btn" data-click="openVersionHistory">
+                        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Version History
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ============================================
+             COMPONENT: WorkflowMainComponent
+             Angular: app-workflow-main selector
+             INPUTS: @Input() activity: Activity
+                     @Input() currentStep: WorkflowStep
+             OUTPUTS: @Output() backToDashboard: EventEmitter<void>
+                      @Output() nextStep: EventEmitter<void>
+                      @Output() previousStep: EventEmitter<void>
+             SERVICE: WorkflowService, StepValidationService
+             ============================================ -->
+        <main class="workflow-main">
+            
+            <!-- Header -->
+            <header class="workflow-header">
+                <div class="workflow-header__left">
+                    <button class="workflow-header__back" data-click="backToDashboard" aria-label="Back to dashboard">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <div class="workflow-header__info">
+                        <h1 class="workflow-header__title" data-bind="activity.name">Electronics Q4 Analysis</h1>
+                        <div class="workflow-header__breadcrumb">
+                            <span data-bind="activity.client">Acme Corporation</span>
+                            <span class="workflow-header__separator">•</span>
+                            <span data-bind="activity.project">Q4 Demand Forecast</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="workflow-header__actions">
+                    <div class="workflow-header__save-status">
+                        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span data-bind="saveStatus">Auto-saved</span>
+                    </div>
+                    <span class="workflow-header__version" data-bind="currentVersion">Version 1.2</span>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <!-- Angular: Dynamic component loading based on currentStep -->
+            <div class="workflow-content">
+                <!-- Step Content would be dynamically loaded here -->
+                <!-- For prototype, showing placeholder for Step 1: Data Upload -->
+                <div class="workflow-content__step ng-condition" data-show="currentStep === 0">
+                    <!-- Step 1: Data Upload Content -->
+                    <div style="max-width: 800px; margin: 0 auto;">
+                        <h2 style="margin-bottom: 24px;">Upload Historical Demand Data</h2>
+                        
+                        <!-- Upload Area -->
+                        <div style="border: 2px dashed #E5E7EB; border-radius: 8px; padding: 48px; text-align: center; background-color: #FAFBFC; margin-bottom: 24px;">
+                            <svg style="width: 48px; height: 48px; margin: 0 auto 16px; opacity: 0.4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <p style="font-size: 16px; margin-bottom: 8px;">Drop your CSV or Excel file here, or click to browse</p>
+                            <p style="color: #6B7280; font-size: 14px; margin-bottom: 16px;">Maximum file size: 100MB</p>
+                            <button style="padding: 8px 16px; background-color: #030213; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                                Choose File
+                            </button>
+                        </div>
+
+                        <!-- File Requirements -->
+                        <div style="background-color: #F3F4F6; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                            <h3 style="margin-bottom: 12px;">Required Columns</h3>
+                            <ul style="list-style: none; padding: 0; margin: 0;">
+                                <li style="padding: 8px 0; border-bottom: 1px solid #E5E7EB;">
+                                    <span style="font-weight: 500;">Date</span> - Sales date (YYYY-MM-DD)
+                                </li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #E5E7EB;">
+                                    <span style="font-weight: 500;">SKUID</span> - SKU identifier
+                                </li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #E5E7EB;">
+                                    <span style="font-weight: 500;">Depot</span> - Depot/location code
+                                </li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #E5E7EB;">
+                                    <span style="font-weight: 500;">Demand</span> - Actual demand recorded
+                                </li>
+                                <li style="padding: 8px 0;">
+                                    <span style="font-weight: 500;">Region</span> - Geographical region of depot
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Optional Columns -->
+                        <div style="background-color: #FEF3C7; border-radius: 8px; padding: 20px;">
+                            <h3 style="margin-bottom: 12px;">Optional Columns</h3>
+                            <p style="color: #92400E; font-size: 14px; margin-bottom: 12px;">Including these columns can improve forecast accuracy:</p>
+                            <ul style="list-style: none; padding: 0; margin: 0;">
+                                <li style="padding: 4px 0;">• Category - Product category</li>
+                                <li style="padding: 4px 0;">• BackOrder - Unfulfilled demand</li>
+                                <li style="padding: 4px 0;">• Price - Price of SKU on given date</li>
+                                <li style="padding: 4px 0;">• Discount - Discount applied (0-1 scale)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Navigation -->
+            <footer class="workflow-footer">
+                <button class="workflow-footer__nav-btn" data-click="previousStep" disabled>
+                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Previous
+                </button>
+                <div class="workflow-footer__status">
+                    <span data-bind="stepStatus">Step 1 of 8</span>
+                </div>
+                <button class="workflow-footer__nav-btn workflow-footer__nav-btn--primary" data-click="nextStep" disabled>
+                    Next Step
+                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+            </footer>
+        </main>
+
+    </div>
+
+    <!--
+    TypeScript Interfaces:
+    ======================
+    interface WorkflowState {
+        activityId: string;
+        currentStep: number;
+        currentVersion: string;
+        stepProgress: boolean[];
+        lastSaved: string;
+        hasUnsavedChanges: boolean;
+        autoSaveEnabled: boolean;
+    }
+
+    interface Activity {
+        id: string;
+        name: string;
+        client: string;
+        project: string;
+        description?: string;
+        permissions: {
+            canEdit: boolean;
+            canExecute: boolean;
+            canDelete: boolean;
+            canCreateVersion: boolean;
+        };
+    }
+
+    interface WorkflowStep {
+        id: string;
+        title: string;
+        description: string;
+        completed: boolean;
+        accessible: boolean;
+        current: boolean;
+        hasNext: boolean;
+        validationStatus: {
+            isValid: boolean;
+            errors: string[];
+            warnings: string[];
+        };
+        data?: any;
+    }
+
+    interface Version {
+        id: string;
+        name: string;
+        status: 'Completed' | 'In Progress' | 'Failed';
+        createdAt: string;
+        accuracy?: number;
+        isCurrent: boolean;
+    }
+
+    Sample Data:
+    ============
+    const workflowState: WorkflowState = {
+        activityId: "act_001",
+        currentStep: 0,
+        currentVersion: "v1.2",
+        stepProgress: [false, false, false, false, false, false, false, false],
+        lastSaved: "2024-01-20T14:45:00Z",
+        hasUnsavedChanges: false,
+        autoSaveEnabled: true
+    };
+
+    const activity: Activity = {
+        id: "act_001",
+        name: "Electronics Q4 Analysis",
+        client: "Acme Corporation",
+        project: "Q4 Demand Forecast",
+        description: "Quarterly demand forecasting for electronics division",
+        permissions: {
+            canEdit: true,
+            canExecute: true,
+            canDelete: false,
+            canCreateVersion: true
+        }
+    };
+
+    const workflowSteps: WorkflowStep[] = [
+        {
+            id: "step-1",
+            title: "Data Upload",
+            description: "Upload and validate your data",
+            completed: false,
+            accessible: true,
+            current: true,
+            hasNext: true,
+            validationStatus: {
+                isValid: false,
+                errors: ["No data uploaded"],
+                warnings: []
+            }
+        },
+        {
+            id: "step-2",
+            title: "Data Analysis",
+            description: "Explore data patterns and quality",
+            completed: false,
+            accessible: false,
+            current: false,
+            hasNext: false,
+            validationStatus: {
+                isValid: false,
+                errors: [],
+                warnings: []
+            }
+        },
+        {
+            id: "step-3",
+            title: "Model Selection",
+            description: "Choose forecasting models",
+            completed: false,
+            accessible: false,
+            current: false,
+            hasNext: false,
+            validationStatus: {
+                isValid: false,
+                errors: [],
+                warnings: []
+            }
+        },
+        {
+            id: "step-4",
+            title: "Feature Selection",
+            description: "Configure feature engineering",
+            completed: false,
+            accessible: false,
+            current: false,
+            hasNext: false,
+            validationStatus: {
+                isValid: false,
+                errors: [],
+                warnings: []
+            }
+        },
+        {
+            id: "step-5",
+            title: "Aggregation",
+            description: "Set aggregation levels and scope",
+            completed: false,
+            accessible: false,
+            current: false,
+            hasNext: false,
+            validationStatus: {
+                isValid: false,
+                errors: [],
+                warnings: []
+            }
+        },
+        {
+            id: "step-6",
+            title: "Date Ranges",
+            description: "Configure training/testing periods",
+            completed: false,
+            accessible: false,
+            current: false,
+            hasNext: false,
+            validationStatus: {
+                isValid: false,
+                errors: [],
+                warnings: []
+            }
+        },
+        {
+            id: "step-7",
+            title: "Model Training",
+            description: "Train and evaluate models",
+            completed: false,
+            accessible: false,
+            current: false,
+            hasNext: false,
+            validationStatus: {
+                isValid: false,
+                errors: [],
+                warnings: []
+            }
+        },
+        {
+            id: "step-8",
+            title: "Results",
+            description: "View results and insights",
+            completed: false,
+            accessible: false,
+            current: false,
+            hasNext: false,
+            validationStatus: {
+                isValid: false,
+                errors: [],
+                warnings: []
+            }
+        }
+    ];
+
+    const versions: Version[] = [
+        {
+            id: "v1.0",
+            name: "Initial Forecast",
+            status: "Completed",
+            createdAt: "2024-01-15T09:00:00Z",
+            accuracy: 92.5,
+            isCurrent: false
+        },
+        {
+            id: "v1.1",
+            name: "Refined Model",
+            status: "Completed",
+            createdAt: "2024-01-18T14:30:00Z",
+            accuracy: 94.1,
+            isCurrent: false
+        },
+        {
+            id: "v1.2",
+            name: "Current Working Version",
+            status: "In Progress",
+            createdAt: "2024-01-20T11:15:00Z",
+            accuracy: null,
+            isCurrent: true
+        }
+    ];
+    -->
+
+</body>
+</html>
