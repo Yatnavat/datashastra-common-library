@@ -5,16 +5,19 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "tenant")
+@SQLDelete(sql = "UPDATE tenant SET deleted = true WHERE id = ?")
+@Where(clause = "deleted = false")
 @Getter
 @Setter
 public class Tenant extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @NotBlank
     @Column(name = "name", nullable = false)
@@ -45,4 +48,23 @@ public class Tenant extends BaseEntity {
 
     @Column(name = "secondary_color")
     private String secondaryColor;
+
+    @Column(name = "keycloak_server_url")
+    private String keycloakServerUrl;
+
+    @Column(name = "keycloak_realm")
+    private String keycloakRealm;
+
+    @Column(name = "keycloak_client_id")
+    private String keycloakClientId;
+
+    // Relationships
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL)
+    private List<User> users = new ArrayList<>();
+
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL)
+    private List<Client> clients = new ArrayList<>();
+
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL)
+    private List<Activity> activities = new ArrayList<>();
 }

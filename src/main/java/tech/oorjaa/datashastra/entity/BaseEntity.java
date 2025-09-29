@@ -1,8 +1,6 @@
 package tech.oorjaa.datashastra.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedBy;
@@ -14,14 +12,18 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 /**
- * Base entity class that includes audit fields.
- * All entities that need auditing should extend this class.
+ * Base entity class that includes audit fields and soft delete support.
+ * All entities should extend this class for consistent ID generation and auditing.
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 public abstract class BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @CreatedDate
     @Column(name = "created_date", nullable = false, updatable = false)
@@ -38,4 +40,7 @@ public abstract class BaseEntity {
     @LastModifiedBy
     @Column(name = "last_modified_by")
     private String lastModifiedBy;
+
+    @Column(name = "deleted", nullable = false)
+    private Boolean deleted = false;
 }
