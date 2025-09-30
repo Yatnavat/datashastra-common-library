@@ -15,7 +15,8 @@ import java.util.List;
  */
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
-        unmappedTargetPolicy = ReportingPolicy.IGNORE)
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        builder = @Builder(disableBuilder = true))
 public interface ModelsMapper {
 
     /**
@@ -37,9 +38,8 @@ public interface ModelsMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
-    @Mapping(target = "modifiedBy", ignore = true)
-    @Mapping(target = "modifiedDate", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "updatedDate", ignore = true)
     Models toEntity(ModelsDto dto);
 
     /**
@@ -64,10 +64,8 @@ public interface ModelsMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
-    @Mapping(target = "modifiedBy", ignore = true)
-    @Mapping(target = "modifiedDate", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
-    @Mapping(target = "tenantId", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "updatedDate", ignore = true)
     void updateEntityFromDto(ModelsDto dto, @MappingTarget Models entity);
 
     /**

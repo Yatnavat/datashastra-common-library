@@ -12,7 +12,8 @@ import java.util.List;
  */
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
-        unmappedTargetPolicy = ReportingPolicy.IGNORE)
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        builder = @Builder(disableBuilder = true))
 public interface TenantMapper {
 
     /**
@@ -21,7 +22,6 @@ public interface TenantMapper {
     @Mapping(target = "isActive", expression = "java(tenant.isActive())")
     @Mapping(target = "statusBadgeColor", expression = "java(getStatusBadgeColor(tenant.getStatus()))")
     @Mapping(target = "displayName", source = "name")
-    @Mapping(target = "keycloakClientSecret", ignore = true) // Never expose secret
     TenantDto toDto(Tenant tenant);
 
     /**

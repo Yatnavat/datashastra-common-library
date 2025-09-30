@@ -15,7 +15,8 @@ import java.util.List;
  */
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
-        unmappedTargetPolicy = ReportingPolicy.IGNORE)
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        builder = @Builder(disableBuilder = true))
 public interface ForecastMapper {
 
     /**
@@ -36,9 +37,8 @@ public interface ForecastMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
-    @Mapping(target = "modifiedBy", ignore = true)
-    @Mapping(target = "modifiedDate", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "updatedDate", ignore = true)
     @Mapping(target = "trainingProgress", ignore = true)
     Forecast toEntity(ForecastDto dto);
 
@@ -64,9 +64,8 @@ public interface ForecastMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
-    @Mapping(target = "modifiedBy", ignore = true)
-    @Mapping(target = "modifiedDate", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "updatedDate", ignore = true)
     @Mapping(target = "tenantId", ignore = true)
     @Mapping(target = "trainingProgress", ignore = true)
     void updateEntityFromDto(ForecastDto dto, @MappingTarget Forecast entity);

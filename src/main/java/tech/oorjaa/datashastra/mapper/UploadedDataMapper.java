@@ -15,7 +15,8 @@ import java.util.List;
  */
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
-        unmappedTargetPolicy = ReportingPolicy.IGNORE)
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        builder = @Builder(disableBuilder = true))
 public interface UploadedDataMapper {
 
     /**
@@ -40,9 +41,8 @@ public interface UploadedDataMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
-    @Mapping(target = "modifiedBy", ignore = true)
-    @Mapping(target = "modifiedDate", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "updatedDate", ignore = true)
     UploadedData toEntity(UploadedDataDto dto);
 
     /**
@@ -67,9 +67,8 @@ public interface UploadedDataMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
-    @Mapping(target = "modifiedBy", ignore = true)
-    @Mapping(target = "modifiedDate", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "updatedDate", ignore = true)
     @Mapping(target = "tenantId", ignore = true)
     @Mapping(target = "checksum", ignore = true) // Don't allow checksum updates
     void updateEntityFromDto(UploadedDataDto dto, @MappingTarget UploadedData entity);
