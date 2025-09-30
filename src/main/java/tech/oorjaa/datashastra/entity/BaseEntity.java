@@ -3,22 +3,26 @@ package tech.oorjaa.datashastra.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
- * Base entity class that includes UUID primary key and audit fields.
- * All entities that need auditing should extend this class.
- * Aligned with TMS Common Entity library patterns.
+ * Base entity providing common fields for all entities:
+ * - Auto-increment Long ID
+ * - Tenant isolation via tenantId
+ * - Audit fields (created/modified by and date)
+ * - Soft delete support
+ *
+ * All domain entities should extend this class.
+ *
+ * @author DataShastra Team
+ * @version 2.0
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
@@ -26,24 +30,54 @@ import java.util.UUID;
 @Setter
 public abstract class BaseEntity implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    /**
+     * Tenant ID for multi-tenancy support
+     * All queries must filter by this field
+     */
+    @Column(name = "tenant_id", nullable = false)
+    private Integer tenantId;
 
     @CreatedBy
-    @Column(name = "created_by", updatable = false)
+    @Column(name = "created_by", updatable = false, length = 100)
     protected String createdBy;
 
-    @CreatedDate
+    @CreationTimestamp
     @Column(name = "created_date", nullable = false, updatable = false)
     protected LocalDateTime createdDate;
 
     @LastModifiedBy
-    @Column(name = "updated_by")
-    protected String updatedBy;
+    @Column(name = "modified_by", length = 100)
+    protected String modifiedBy;
 
-    @LastModifiedDate
-    @Column(name = "updated_date")
-    protected LocalDateTime updatedDate;
+    @UpdateTimestamp
+    @Column(name = "modified_date")
+    protected LocalDateTime modifiedDate;
+
+    /**
+     * Soft delete flag - use instead of physical deletion
+     */
+    @Column(name = "deleted", nullable = false)
+    protected Boolean deleted = false;
+
+    /**
+     * Mark entity as deleted (soft delete)
+     */
+    public void markAsDeleted() {
+        this.deleted = true;
+        this.modifiedDate = LocalDateTime.now();
+    }
+
+    /**
+     * Check if entity is active (not deleted)
+     */
+    public boolean isActive() {
+        return !deleted;
+    }
 }

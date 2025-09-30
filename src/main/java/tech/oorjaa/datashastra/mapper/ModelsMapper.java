@@ -34,8 +34,12 @@ public interface ModelsMapper {
      * @param dto the DTO to convert
      * @return the converted entity
      */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
-    @Mapping(target = "updatedDate", ignore = true)
+    @Mapping(target = "modifiedBy", ignore = true)
+    @Mapping(target = "modifiedDate", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
     Models toEntity(ModelsDto dto);
 
     /**
@@ -58,8 +62,12 @@ public interface ModelsMapper {
      * @param entity the target entity to update
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdDate", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "createdDate", ignore = true)
+    @Mapping(target = "modifiedBy", ignore = true)
+    @Mapping(target = "modifiedDate", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "tenantId", ignore = true)
     void updateEntityFromDto(ModelsDto dto, @MappingTarget Models entity);
 
     /**

@@ -35,8 +35,13 @@ public interface ActivityMapper {
      * @param dto the DTO to convert
      * @return the converted entity
      */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
-    @Mapping(target = "updatedDate", ignore = true)
+    @Mapping(target = "modifiedBy", ignore = true)
+    @Mapping(target = "modifiedDate", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "forecasts", ignore = true)
     Activity toEntity(ActivityDto dto);
 
     /**
@@ -59,9 +64,13 @@ public interface ActivityMapper {
      * @param entity the target entity to update
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdDate", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "createdDate", ignore = true)
+    @Mapping(target = "modifiedBy", ignore = true)
+    @Mapping(target = "modifiedDate", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "tenantId", ignore = true)
+    @Mapping(target = "forecasts", ignore = true)
     void updateEntityFromDto(ActivityDto dto, @MappingTarget Activity entity);
 
     /**

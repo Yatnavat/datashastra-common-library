@@ -37,8 +37,12 @@ public interface UploadedDataMapper {
      * @param dto the DTO to convert
      * @return the converted entity
      */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
-    @Mapping(target = "updatedDate", ignore = true)
+    @Mapping(target = "modifiedBy", ignore = true)
+    @Mapping(target = "modifiedDate", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
     UploadedData toEntity(UploadedDataDto dto);
 
     /**
@@ -61,8 +65,11 @@ public interface UploadedDataMapper {
      * @param entity the target entity to update
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdDate", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "createdDate", ignore = true)
+    @Mapping(target = "modifiedBy", ignore = true)
+    @Mapping(target = "modifiedDate", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "tenantId", ignore = true)
     @Mapping(target = "checksum", ignore = true) // Don't allow checksum updates
     void updateEntityFromDto(UploadedDataDto dto, @MappingTarget UploadedData entity);

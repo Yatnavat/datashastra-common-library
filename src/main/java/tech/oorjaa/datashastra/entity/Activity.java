@@ -2,45 +2,37 @@ package tech.oorjaa.datashastra.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.annotations.BatchSize;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.SQLRestriction;
 import tech.oorjaa.datashastra.enums.ActivityPriority;
 import tech.oorjaa.datashastra.enums.ActivityStatus;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Main container entity for forecasting activities within client projects.
  * Represents a business forecasting initiative with specific scope and objectives.
- * 
+ *
  * @author DataShastra Team
- * @version 1.0
+ * @version 2.0
  */
 @Entity
 @Table(name = "activity", indexes = {
-    @Index(name = "idx_activity_tenant_status", columnList = "tenant_id, status"),
+    @Index(name = "idx_activity_tenant_status", columnList = "tenant_id, status, deleted"),
     @Index(name = "idx_activity_client_project", columnList = "client_id, project_id, tenant_id"),
-    @Index(name = "idx_activity_created_date", columnList = "created_date, tenant_id"),
     @Index(name = "idx_activity_priority_status", columnList = "priority, status, tenant_id")
 })
-@Data
-@EqualsAndHashCode(callSuper = false, exclude = {"forecasts"})
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode(callSuper = true, exclude = {"forecasts"})
 @ToString(exclude = {"forecasts"})
-public class Activity implements Serializable {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "tenant_id", nullable = false)
-    private Integer tenantId;
+@SQLRestriction("deleted = false")
+public class Activity extends BaseEntity {
 
     @Column(nullable = false, length = 100)
     @NotBlank(message = "Activity name is required")
@@ -54,11 +46,13 @@ public class Activity implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @NotNull(message = "Priority is required")
+    @Builder.Default
     private ActivityPriority priority = ActivityPriority.MEDIUM;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @NotNull(message = "Status is required")
+    @Builder.Default
     private ActivityStatus status = ActivityStatus.DRAFT;
 
     @Column(length = 100)
@@ -67,9 +61,10 @@ public class Activity implements Serializable {
 
     @Column(name = "forecast_count", nullable = false)
     @Min(value = 0, message = "Forecast count cannot be negative")
+    @Builder.Default
     private Integer forecastCount = 0;
 
-    // Foreign Key Relationships
+    // Foreign Key Relationships (cross-aggregate references)
     @Column(name = "client_id", nullable = false)
     @NotNull(message = "Client is required")
     private Long clientId;
@@ -93,21 +88,6 @@ public class Activity implements Serializable {
     @Column(name = "locale", length = 10)
     @Pattern(regexp = "^[a-z]{2}(_[A-Z]{2})?$", message = "Locale must be in format 'en' or 'en_US'")
     private String locale;
-
-    // Audit Fields
-    @CreationTimestamp
-    @Column(name = "created_date", updatable = false)
-    private LocalDateTime createdDate;
-
-    @UpdateTimestamp
-    @Column(name = "updated_date")
-    private LocalDateTime updatedDate;
-
-    @Column(name = "created_by", updatable = false, length = 100)
-    private String createdBy;
-
-    @Column(name = "updated_by", length = 100)
-    private String updatedBy;
 
     // Relationships
     @OneToMany(mappedBy = "activityId", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
