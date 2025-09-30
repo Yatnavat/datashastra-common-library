@@ -13,18 +13,59 @@ This library (`tech.oorjaa:datashastra-common-library`) contains:
 - **User**: Standard user entity with Keycloak integration and tenant support
 - **Tenant**: Multi-tenancy support entity
 
+### Forecasting Entities (New)
+- **Activity**: Core forecasting activity with multi-tenant support and global configurations
+- **Forecast**: Individual forecast instances with 8-step workflow tracking
+- **Models**: ML model definitions with capabilities and resource requirements
+- **UploadedData**: File metadata with processing status and data quality metrics
+- **TransformedData**: Processed data with transformation history
+- **ExploratoryDataAnalytics**: EDA results and statistical summaries
+- **ValidationResults**: Data validation assessments
+- **FeatureConfiguration**: Feature engineering configurations
+- **WorkflowStep**: Workflow progress tracking
+- **TrainingProgress**: Real-time training monitoring
+
 ### Standard DTOs
 - **StandardResponse<T>**: Use this for ALL API responses (success/error wrapper)
 - **ErrorResponse**: Standardized error response format
 - **UserDto**: User data transfer object
 - **Authentication DTOs**: LoginRequest, LoginResponse, RefreshTokenRequest, KeycloakTokenResponse
+- **CompanyDto**: Company/organization DTO
+
+### Forecasting DTOs (New)
+- **ActivityDto**: Activity data transfer with UI display fields and computed properties
+- **ForecastDto**: Complete forecast data with workflow state and performance metrics
+- **ModelsDto**: Model information with capabilities and suitability scoring
+- **UploadedDataDto**: File metadata with processing status and quality indicators
 
 ### Mappers
 - **UserMapper**: MapStruct mapper for User entity/DTO conversion
 - **CompanyMapper**: MapStruct mapper for Company entity/DTO conversion
 
+### Forecasting Mappers (New)
+- **ActivityMapper**: Bi-directional Activity entity/DTO mapping with enrichment
+- **ForecastMapper**: Complex forecast transformations with workflow state
+- **ModelsMapper**: Model configuration and capability mapping
+- **UploadedDataMapper**: File metadata and processing status mapping
+
 ### Constants
 - **ServiceConstants**: Shared application constants across all services
+
+### Enums (New)
+- **ActivityStatus**: DRAFT, ACTIVE, COMPLETED, ON_HOLD, ARCHIVED
+- **ActivityPriority**: HIGH, MEDIUM, LOW
+- **ForecastStatus**: DRAFT, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+- **ModelType**: ARIMA, PROPHET, XGBOOST, LSTM, LIGHTGBM, etc.
+- **ModelComplexity**: LOW, MEDIUM, HIGH
+- **UploadDataType**: CSV, EXCEL, JSON, API
+- **TrainingStatus**: INITIALIZING, PREPARING_DATA, TRAINING, VALIDATING, etc.
+- **WorkflowStepType**: DATA_UPLOAD, ANALYSIS, MODEL_SELECTION, etc.
+
+### Repositories (New)
+- **ActivityRepository**: 50+ queries for activity management and dashboard statistics
+- **ForecastRepository**: 45+ queries for version control and performance tracking
+- **ModelsRepository**: 25+ cached queries for model selection and recommendations
+- **UploadedDataRepository**: 40+ queries for file management and quality assessment
 
 ## 🚨 When to Modify the Common Library
 
@@ -147,6 +188,119 @@ public class YourUserService {
     public UserDto getUser(Long id) {
         User user = userRepository.findById(id).orElseThrow();
         return userMapper.toDto(user);
+    }
+}
+```
+
+### 6. Use Forecasting Entities (NEW)
+**✅ For forecasting/analytics features:**
+```java
+// Use the Activity entity and repository
+import tech.oorjaa.datashastra.entity.Activity;
+import tech.oorjaa.datashastra.dto.ActivityDto;
+import tech.oorjaa.datashastra.mapper.ActivityMapper;
+import tech.oorjaa.datashastra.repository.ActivityRepository;
+
+@Service
+public class ForecastingService {
+    @Autowired
+    private ActivityRepository activityRepository;
+    
+    @Autowired
+    private ActivityMapper activityMapper;
+
+    public StandardResponse<ActivityDto> createActivity(ActivityDto request) {
+        Activity activity = activityMapper.toEntity(request);
+        activity.setTenantId(getCurrentTenantId());
+        activity = activityRepository.save(activity);
+        return StandardResponse.success(
+            activityMapper.toDto(activity), 
+            "Activity created successfully"
+        );
+    }
+    
+    // Use repository custom queries
+    public StandardResponse<List<ActivityDto>> getHighPriorityActivities() {
+        Integer tenantId = getCurrentTenantId();
+        List<Activity> activities = activityRepository
+            .findHighPriorityActiveActivities(tenantId);
+        return StandardResponse.success(
+            activityMapper.toDtoList(activities),
+            "High priority activities retrieved"
+        );
+    }
+}
+```
+
+### 7. Use Forecast Workflow
+**✅ For implementing 8-step workflow:**
+```java
+import tech.oorjaa.datashastra.entity.Forecast;
+import tech.oorjaa.datashastra.dto.ForecastDto;
+import tech.oorjaa.datashastra.enums.ForecastStatus;
+import tech.oorjaa.datashastra.repository.ForecastRepository;
+
+@Service
+public class ForecastWorkflowService {
+    @Autowired
+    private ForecastRepository forecastRepository;
+    
+    public ForecastDto advanceWorkflowStep(Long forecastId) {
+        Forecast forecast = forecastRepository
+            .findByIdAndTenantId(forecastId, getTenantId())
+            .orElseThrow();
+            
+        // Advance to next step
+        int currentStep = forecast.getCurrentStep();
+        if (currentStep < 8) {
+            forecast.setCurrentStep(currentStep + 1);
+            forecast.setStepComplete(currentStep, true);
+            
+            // Update status when reaching training
+            if (currentStep == 7) {
+                forecast.setStatus(ForecastStatus.IN_PROGRESS);
+            }
+        }
+        
+        forecast = forecastRepository.save(forecast);
+        return forecastMapper.toDto(forecast);
+    }
+}
+```
+
+### 8. Use Model Selection
+**✅ For ML model recommendations:**
+```java
+import tech.oorjaa.datashastra.repository.ModelsRepository;
+import tech.oorjaa.datashastra.dto.ModelsDto;
+
+@Service
+public class ModelSelectionService {
+    @Autowired
+    private ModelsRepository modelsRepository;
+    
+    @Autowired
+    private ModelsMapper modelsMapper;
+    
+    @Cacheable("recommended-models")
+    public List<ModelsDto> getRecommendedModels(int dataPoints) {
+        // Use cached repository method
+        var models = modelsRepository.findSuitableForDataSize(dataPoints);
+        return modelsMapper.toDtoList(models);
+    }
+    
+    public List<ModelsDto> findModelsForRequirements(
+        int dataPoints, 
+        boolean needsSeasonality,
+        boolean needsMissingValues
+    ) {
+        var models = modelsRepository.findRecommendedModelsForRequirements(
+            dataPoints,
+            needsSeasonality,
+            needsMissingValues,
+            false // nonlinearity
+        );
+        return modelsMapper.toDtoList(models);
     }
 }
 ```
@@ -342,6 +496,26 @@ Create run configurations for common tasks:
 - **Package Namespace**: `tech.oorjaa.datashastra.*`
 - **Current Version**: `0.0.1-SNAPSHOT`
 - **Local Maven Repository**: `~/.m2/repository/tech/oorjaa/datashastra-common-library/`
+
+### Key Package Structure
+```
+tech.oorjaa.datashastra/
+├── entity/           # JPA entities (Activity, Forecast, Models, etc.)
+├── dto/              # Data transfer objects
+├── mapper/           # MapStruct mappers for entity-DTO conversion
+├── repository/       # Spring Data JPA repositories with custom queries
+├── enums/            # Domain enumerations
+└── constant/         # Shared constants
+```
+
+### New Forecasting Components Summary
+- **15 Entities**: Complete forecasting domain model with multi-tenant support
+- **8 Enums**: Domain-specific type definitions  
+- **4 DTOs**: Rich data transfer objects with UI helpers
+- **4 Mappers**: Bi-directional entity-DTO conversions
+- **4 Repositories**: 160+ custom queries for efficient data access
+- **Global Support**: Multi-timezone, multi-currency, GDPR compliance
+- **Performance**: Strategic indexing for sub-500ms response times
 
 ### IntelliJ Shortcuts:
 - **Gradle Panel**: `Ctrl+Shift+A` → "Gradle"
